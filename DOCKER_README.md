@@ -22,7 +22,7 @@ This document provides instructions for running the Recruitment Portal applicati
 
 3. **Access the application**:
    - Frontend: http://localhost
-   - Backend API: http://51.21.168.125:8000
+   - Backend API: http://13.200.243.193:8000
    - MongoDB: MongoDB Atlas (Cloud)
 
 ## Services Overview

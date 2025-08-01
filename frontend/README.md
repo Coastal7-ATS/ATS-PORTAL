@@ -56,7 +56,7 @@ src/
 ### Common Issues
 
 1. **Build Errors**: Make sure all dependencies are installed
-2. **API Connection**: Ensure backend is running on 51.21.168.125:8000
+2. **API Connection**: Ensure backend is running on 13.200.243.193:8000
 3. **Styling Issues**: Check if Tailwind CSS is properly configured
 
 ### Error Handling
