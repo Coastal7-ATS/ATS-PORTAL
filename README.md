@@ -60,12 +60,65 @@ P4-V2/
 
 ## Installation & Setup
 
-### Prerequisites
+### Option 1: Docker (Recommended)
+
+#### Prerequisites
+- Docker Desktop installed on your system
+- Docker Compose (usually comes with Docker Desktop)
+
+#### Quick Start with Docker
+
+1. **Clone the repository** (if not already done):
+   ```bash
+   git clone <repository-url>
+   cd P4-V2
+   ```
+
+2. **Start the application**:
+   ```bash
+   # For development (with hot reload)
+   docker-compose -f docker-compose.dev.yml up --build
+   
+   # For production
+   docker-compose -f docker-compose.prod.yml up --build -d
+   
+   # Or use the provided scripts
+   ./docker-start.sh dev    # Linux/Mac
+   docker-start.bat dev     # Windows
+   ```
+
+3. **Access the application**:
+   - Frontend: http://localhost (or http://localhost:3000 for dev)
+   - Backend API: http://localhost:8000
+   - MongoDB: MongoDB Atlas (Cloud)
+
+#### Docker Commands
+
+```bash
+# Start services
+docker-compose up --build
+
+# Stop services
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# Clean up everything
+docker-compose down -v
+docker system prune -a
+```
+
+For detailed Docker instructions, see [DOCKER_README.md](./DOCKER_README.md).
+
+### Option 2: Manual Setup
+
+#### Prerequisites
 - Python 3.8+
 - Node.js 16+
 - MongoDB Atlas account
 
-### Backend Setup
+#### Backend Setup
 
 1. **Navigate to backend directory:**
    ```bash
@@ -98,7 +151,7 @@ P4-V2/
    ```
    The API will be available at `http://localhost:8000`
 
-### Frontend Setup
+#### Frontend Setup
 
 1. **Navigate to frontend directory:**
    ```bash

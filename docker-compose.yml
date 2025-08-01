@@ -1,0 +1,40 @@
+services:
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: recruitment-backend
+    restart: unless-stopped
+    environment:
+      - MONGODB_URL=mongodb+srv://Bharathi123:Bharathi123@cluster0.q0k9nft.mongodb.net/ats_recruitment?retryWrites=true&w=majority&appName=Cluster0
+      - JWT_SECRET_KEY=your-secret-key-here-change-in-production
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    ports:
+      - "8000:8000"
+    networks:
+      - recruitment-network
+    volumes:
+      - ./backend:/app
+      - /app/venv
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: recruitment-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - recruitment-network
+
+networks:
+  recruitment-network:
+    driver: bridge
+
+ 
