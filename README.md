@@ -89,7 +89,7 @@ P4-V2/
 
 3. **Access the application**:
    - Frontend: http://localhost (or http://localhost:3000 for dev)
-   - Backend API: http://localhost:8000
+   - Backend API: http://51.21.168.125:8000
    - MongoDB: MongoDB Atlas (Cloud)
 
 #### Docker Commands
@@ -149,7 +149,7 @@ For detailed Docker instructions, see [DOCKER_README.md](./DOCKER_README.md).
    ```bash
    python main.py
    ```
-   The API will be available at `http://localhost:8000`
+       The API will be available at `http://51.21.168.125:8000`
 
 #### Frontend Setup
 

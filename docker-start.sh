@@ -27,5 +27,5 @@ esac
 echo "Recruitment Portal is starting up!"
 echo "Access the application at:"
 echo "- Frontend: http://localhost"
-echo "- Backend API: http://localhost:8000"
+echo "- Backend API: http://51.21.168.125:8000"
 echo "- MongoDB: localhost:27017" 
