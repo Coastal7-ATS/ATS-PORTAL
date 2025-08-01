@@ -2,7 +2,7 @@ import axios from 'axios'
 import { toast } from 'react-toastify'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: 'http://recruitment-backend:8000',
   headers: {
     'Content-Type': 'application/json',
   },
