@@ -122,7 +122,7 @@ export const ValidatedInput = ({
 
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-semibold text-slate-700 mb-1">
         {label}
       </label>
       <input
@@ -130,11 +130,11 @@ export const ValidatedInput = ({
         value={value}
         onChange={(e) => onChange(name, e.target.value)}
         onBlur={() => onBlur(name)}
-        className={`input-field ${showError ? 'border-red-500 focus:ring-red-500' : ''}`}
+        className={`input-field ${showError ? 'border-danger-500 focus:ring-danger-500' : ''}`}
         {...props}
       />
       {showError && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p className="mt-1 text-sm text-danger-600">{error}</p>
       )}
     </div>
   )
@@ -156,14 +156,14 @@ export const ValidatedSelect = ({
 
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-semibold text-slate-700 mb-1">
         {label}
       </label>
       <select
         value={value}
         onChange={(e) => onChange(name, e.target.value)}
         onBlur={() => onBlur(name)}
-        className={`input-field ${showError ? 'border-red-500 focus:ring-red-500' : ''}`}
+        className={`select-field ${showError ? 'border-danger-500 focus:ring-danger-500' : ''}`}
         {...props}
       >
         {options.map(option => (
@@ -173,7 +173,7 @@ export const ValidatedSelect = ({
         ))}
       </select>
       {showError && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p className="mt-1 text-sm text-danger-600">{error}</p>
       )}
     </div>
   )
@@ -195,7 +195,7 @@ export const ValidatedTextarea = ({
 
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-semibold text-slate-700 mb-1">
         {label}
       </label>
       <textarea
@@ -203,11 +203,11 @@ export const ValidatedTextarea = ({
         onChange={(e) => onChange(name, e.target.value)}
         onBlur={() => onBlur(name)}
         rows={rows}
-        className={`input-field ${showError ? 'border-red-500 focus:ring-red-500' : ''}`}
+        className={`input-field ${showError ? 'border-danger-500 focus:ring-danger-500' : ''}`}
         {...props}
       />
       {showError && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+        <p className="mt-1 text-sm text-danger-600">{error}</p>
       )}
     </div>
   )

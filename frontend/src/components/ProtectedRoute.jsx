@@ -1,22 +1,22 @@
 import React from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import LoadingSpinner from './LoadingSpinner'
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading, isAuthenticated } = useAuth()
 
+  // Show loading spinner while checking authentication
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
-      </div>
-    )
+    return <LoadingSpinner message="Checking authentication..." />
   }
 
-  if (!isAuthenticated) {
+  // Redirect to login if not authenticated
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />
   }
 
+  // Check role permissions
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
     // Redirect to appropriate dashboard based on role
     const redirectPath = user?.role === 'admin' ? '/admin/dashboard' : '/hr/dashboard'

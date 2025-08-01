@@ -31,9 +31,15 @@ export const RealTimeProvider = ({ children }) => {
       const endpoint = user.role === 'admin' ? '/admin/dashboard' : '/hr/dashboard'
       const response = await api.get(endpoint)
       setDashboardData(response.data)
-      setLastUpdate(new Date())
+      setLastUpdate(new Date().toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }))
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
+      // Don't show error toast for dashboard data fetch
     }
   }, [user, isActive])
 
@@ -46,6 +52,7 @@ export const RealTimeProvider = ({ children }) => {
       setJobs(response.data)
     } catch (error) {
       console.error('Error fetching jobs:', error)
+      // Don't show error toast for jobs fetch
     }
   }, [user, isActive])
 
@@ -57,6 +64,7 @@ export const RealTimeProvider = ({ children }) => {
       setCandidates(response.data)
     } catch (error) {
       console.error('Error fetching candidates:', error)
+      // Don't show error toast for candidates fetch
     }
   }, [user, isActive])
 

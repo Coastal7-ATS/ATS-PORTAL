@@ -18,11 +18,15 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'))
 
   useEffect(() => {
-    if (token) {
-      checkAuth()
-    } else {
-      setLoading(false)
+    const initializeAuth = async () => {
+      if (token) {
+        await checkAuth()
+      } else {
+        setLoading(false)
+      }
     }
+    
+    initializeAuth()
   }, [token])
 
   const checkAuth = async () => {
@@ -31,7 +35,13 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data)
     } catch (error) {
       console.error('Auth check failed:', error)
-      logout()
+      // Clear invalid token
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logout()
+      } else {
+        // For network errors, just set loading to false without logging out
+        setLoading(false)
+      }
     } finally {
       setLoading(false)
     }
@@ -55,7 +65,8 @@ export const AuthProvider = ({ children }) => {
       toast.success('Login successful!')
       return userResponse.data
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Login failed')
+      const errorMessage = error.response?.data?.detail || 'Login failed. Please check your credentials.'
+      toast.error(errorMessage)
       throw error
     }
   }
@@ -78,7 +89,8 @@ export const AuthProvider = ({ children }) => {
       toast.success('Registration successful!')
       return userResponse.data
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Registration failed')
+      const errorMessage = error.response?.data?.detail || 'Registration failed. Please try again.'
+      toast.error(errorMessage)
       throw error
     }
   }
@@ -88,6 +100,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null)
     setUser(null)
     delete api.defaults.headers.common['Authorization']
+    setLoading(false)
     toast.info('Logged out successfully')
   }
 

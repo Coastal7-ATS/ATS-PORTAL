@@ -1,0 +1,9 @@
+@echo off
+echo Starting Recruitment Portal Frontend...
+echo.
+echo Installing dependencies...
+npm install
+echo.
+echo Starting development server...
+npm run dev
+pause 

@@ -6,7 +6,21 @@ import 'react-toastify/dist/ReactToastify.css'
 import App from './App.jsx'
 import './index.css'
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+// Error handler for unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason)
+})
+
+// Error handler for uncaught errors
+window.addEventListener('error', (event) => {
+  console.error('Uncaught error:', event.error)
+})
+
+// Create root with error handling
+const root = ReactDOM.createRoot(document.getElementById('root'))
+
+// Render with error boundary
+root.render(
   <React.StrictMode>
     <BrowserRouter>
       <App />
@@ -20,6 +34,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         pauseOnFocusLoss
         draggable
         pauseOnHover
+        theme="light"
+        toastStyle={{
+          borderRadius: '12px',
+          fontSize: '14px',
+        }}
       />
     </BrowserRouter>
   </React.StrictMode>,

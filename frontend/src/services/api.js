@@ -6,7 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 15000, // Increased timeout to 15 seconds
 })
 
 // Add token to requests if available
@@ -43,15 +43,21 @@ api.interceptors.response.use(
       
       switch (status) {
         case 401:
-          localStorage.removeItem('token')
-          window.location.href = '/login'
-          toast.error('Session expired. Please login again.')
+          // Only redirect if not already on login page and not during auth check
+          if (window.location.pathname !== '/login' && !error.config?.url?.includes('/auth/me')) {
+            localStorage.removeItem('token')
+            window.location.href = '/login'
+            toast.error('Session expired. Please login again.')
+          }
           break
         case 403:
           toast.error('Access denied. You do not have permission for this action.')
           break
         case 404:
-          toast.error('Resource not found.')
+          // Don't show toast for 404 errors during auth check
+          if (!error.config?.url?.includes('/auth/me')) {
+            toast.error('Resource not found.')
+          }
           break
         case 422:
           toast.error('Invalid data provided. Please check your input.')
@@ -60,26 +66,33 @@ api.interceptors.response.use(
           toast.error('Server error. Please try again later.')
           break
         default:
-          toast.error(data?.detail || 'An error occurred. Please try again.')
+          // Don't show toast for auth-related errors
+          if (!error.config?.url?.includes('/auth/me')) {
+            toast.error(data?.detail || 'An error occurred. Please try again.')
+          }
       }
     } else if (error.request) {
-      // Network error
-      toast.error('Network error. Please check your connection and try again.')
+      // Network error - only show toast if not during auth check
+      if (!error.config?.url?.includes('/auth/me')) {
+        toast.error('Network error. Please check your connection and try again.')
+      }
     } else {
-      // Other errors
-      toast.error('An unexpected error occurred. Please try again.')
+      // Other errors - only show toast if not during auth check
+      if (!error.config?.url?.includes('/auth/me')) {
+        toast.error('An unexpected error occurred. Please try again.')
+      }
     }
     
     return Promise.reject(error)
   }
 )
 
-// Retry logic for failed requests
-const retryRequest = async (config, retries = 3) => {
+// Enhanced retry logic for failed requests
+const retryRequest = async (config, retries = 2) => {
   try {
     return await api(config)
   } catch (error) {
-    if (retries > 0 && error.response?.status >= 500) {
+    if (retries > 0 && (error.response?.status >= 500 || !error.response)) {
       await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
       return retryRequest(config, retries - 1)
     }

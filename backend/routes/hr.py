@@ -8,10 +8,18 @@ from database import get_database
 router = APIRouter(prefix="/hr", tags=["HR"])
 
 @router.get("/jobs")
-async def get_hr_jobs(current_user: dict = Depends(get_current_hr_user)):
+async def get_hr_jobs(
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_hr_user)
+):
     db = await get_database()
     
-    jobs = await db.recruitment_portal.jobs.find({"assigned_hr": str(current_user["_id"])}).sort("created_at", -1).to_list(length=100)
+    # Build filter query
+    filter_query = {"assigned_hr": str(current_user["_id"])}
+    if status:
+        filter_query["status"] = status
+    
+    jobs = await db.recruitment_portal.jobs.find(filter_query).sort("created_at", -1).to_list(length=100)
     
     for job in jobs:
         job["id"] = str(job["_id"])
