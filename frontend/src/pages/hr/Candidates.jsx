@@ -107,6 +107,8 @@ const HRCandidates = () => {
       preferred_interview_location: selectedCandidate.preferred_interview_location || '',
       interview_location: selectedCandidate.interview_location || '',
       availability_interview: selectedCandidate.availability_interview || '',
+      current_ctc: selectedCandidate.current_ctc || '',
+      expected_ctc: selectedCandidate.expected_ctc || '',
 
       // General Information
       roc_check_done: selectedCandidate.roc_check_done || '',
@@ -291,6 +293,8 @@ const HRCandidates = () => {
         'Oral Communication Comments': 'oral_communication_comments',
         'Additional Certifications': 'education_additional_certifications',
         'Duration': 'education_degree_duration',
+        'Current CTC': 'current_ctc',
+        'Expected CTC': 'expected_ctc',
       };
 
       const fieldName = fieldNameMap[label] || label.toLowerCase().replace(/\s+/g, '_');
@@ -651,6 +655,8 @@ const HRCandidates = () => {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Applied For</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Current CTC</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Expected CTC</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Experience</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Education</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Skills</th>
@@ -668,6 +674,8 @@ const HRCandidates = () => {
                     <td className="px-4 py-2 text-sm text-gray-900">{candidate.email}</td>
                     <td className="px-4 py-2 text-sm text-gray-900">{candidate.phone}</td>
                     <td className="px-4 py-2 text-sm text-gray-900">{candidate.applied_for || 'N/A'}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.current_ctc || 'N/A'}</td>
+                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.expected_ctc || 'N/A'}</td>
                     <td className="px-4 py-2 text-sm text-gray-900">{candidate.experience}</td>
                     <td className="px-4 py-2 text-sm text-gray-900">{candidate.education}</td>
                     <td className="px-4 py-2 text-sm text-gray-900">{candidate.skills}</td>
@@ -787,6 +795,8 @@ const HRCandidates = () => {
                   {renderField('Preferred Interview Location', selectedCandidate.preferred_interview_location)}
                   {renderField('Interview Location', selectedCandidate.interview_location)}
                   {renderField('Availability for Interview', selectedCandidate.availability_interview)}
+                  {renderField('Current CTC', selectedCandidate.current_ctc)}
+                  {renderField('Expected CTC', selectedCandidate.expected_ctc)}
                 </div>
               </div>
 

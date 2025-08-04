@@ -175,6 +175,8 @@ class CandidateBase(BaseModel):
     job_id: str
     status: Optional[str] = "applied"
     applied_date: Optional[str] = None
+    current_ctc: Optional[str] = None
+    expected_ctc: Optional[str] = None
 
 class CandidateCreate(CandidateBase):
     pass
@@ -298,6 +300,8 @@ class CandidateUpdate(BaseModel):
     job_id: Optional[str] = None
     status: Optional[str] = "applied"
     applied_date: Optional[str] = None
+    current_ctc: Optional[str] = None
+    expected_ctc: Optional[str] = None
 
 class Candidate(CandidateBase):
     id: str

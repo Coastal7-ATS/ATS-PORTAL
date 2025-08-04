@@ -468,6 +468,8 @@ const CandidateViewModal = ({ candidate, open, onClose, onUpdate }) => {
               {renderField('Preferred Interview Location', candidate.preferred_interview_location)}
               {renderField('Interview Location', candidate.interview_location)}
               {renderField('Availability for Interview', candidate.availability_interview)}
+              {renderField('Current CTC', candidate.current_ctc)}
+              {renderField('Expected CTC', candidate.expected_ctc)}
             </div>
           </div>
 

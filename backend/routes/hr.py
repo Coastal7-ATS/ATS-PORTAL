@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 from typing import Optional
 from routes.auth import get_current_hr_user
 from database import get_database
 
 router = APIRouter(prefix="/hr", tags=["HR"])
+
+ALLOWED_JOB_STATUSES = ["open", "closed", "submitted", "demand closed"]
+MANUAL_JOB_STATUSES = ["open", "closed", "submitted"]
 
 @router.get("/jobs")
 async def get_hr_jobs(
@@ -18,7 +21,16 @@ async def get_hr_jobs(
     filter_query = {"assigned_hr": str(current_user["_id"])}
     if status:
         filter_query["status"] = status
-    
+
+    # --- DEMAND CLOSED LOGIC ---
+    now = datetime.utcnow()
+    two_days_ago = now - timedelta(days=2)
+    open_jobs = await db.recruitment_portal.jobs.find({"status": "open", "assigned_hr": str(current_user["_id"]), "opening_date": {"$lte": two_days_ago}}).to_list(length=200)
+    for job in open_jobs:
+        selected = await db.recruitment_portal.candidates.find_one({"job_id": job["job_id"], "status": "selected"})
+        if not selected:
+            await db.recruitment_portal.jobs.update_one({"_id": job["_id"]}, {"$set": {"status": "demand closed"}})
+
     jobs = await db.recruitment_portal.jobs.find(filter_query).sort("created_at", -1).to_list(length=100)
     
     for job in jobs:
@@ -38,11 +50,13 @@ async def update_job_status(
     status: str,
     current_user: dict = Depends(get_current_hr_user)
 ):
+    if status not in MANUAL_JOB_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid status. Allowed: open, closed, submitted.")
     db = await get_database()
     
     # Find job by job_id field instead of _id
     result = await db.recruitment_portal.jobs.update_one(
-        {"job_id": job_id, "assigned_hr": str(current_user["_id"])},
+        {"job_id": job_id, "assigned_hr": str(current_user["_id"])} ,
         {"$set": {"status": status}}
     )
     

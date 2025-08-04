@@ -10,6 +10,9 @@ from database import get_database
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
+ALLOWED_JOB_STATUSES = ["open", "closed", "submitted", "demand closed"]
+MANUAL_JOB_STATUSES = ["open", "closed", "submitted"]
+
 @router.post("/upload-csv")
 async def upload_csv(file: UploadFile = File(...), current_user: dict = Depends(get_current_admin_user)):
     db = await get_database()
@@ -40,7 +43,7 @@ async def upload_csv(file: UploadFile = File(...), current_user: dict = Depends(
                 "salary_package": row['ctc'],
                 "source_company": "CSV Upload",
                 "uploaded_by": str(current_user["_id"]),
-                "status": "allocated",
+                "status": "open",
                 "opening_date": datetime.now(),
                 "created_at": datetime.utcnow()
             }
@@ -62,7 +65,11 @@ async def add_job(job_data: dict, current_user: dict = Depends(get_current_admin
     
     job_data["job_id"] = job_id
     job_data["uploaded_by"] = str(current_user["_id"])
-    job_data["status"] = "allocated"
+    # Only allow manual statuses
+    status = job_data.get("status", "open")
+    if status not in MANUAL_JOB_STATUSES:
+        status = "open"
+    job_data["status"] = status
     job_data["opening_date"] = datetime.now()
     job_data["created_at"] = datetime.utcnow()
     job_data["source_company"] = "Manual Entry"
@@ -82,7 +89,10 @@ async def add_jobs_bulk(jobs_data: List[dict], current_user: dict = Depends(get_
         
         job_data["job_id"] = job_id
         job_data["uploaded_by"] = str(current_user["_id"])
-        job_data["status"] = "allocated"  # Initial status as allocated
+        status = job_data.get("status", "open")
+        if status not in MANUAL_JOB_STATUSES:
+            status = "open"
+        job_data["status"] = status
         job_data["opening_date"] = datetime.now()
         job_data["created_at"] = datetime.utcnow()
         job_data["salary_package"] = job_data.get("ctc", "")
@@ -106,6 +116,11 @@ async def update_job(
     job_update.pop("job_id", None)
     job_update.pop("uploaded_by", None)
     job_update.pop("created_at", None)
+    
+    # Prevent manual setting of demand closed
+    if "status" in job_update:
+        if job_update["status"] not in MANUAL_JOB_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid status. Allowed: open, closed, submitted.")
     
     result = await db.recruitment_portal.jobs.update_one(
         {"job_id": job_id},
@@ -132,11 +147,9 @@ async def get_all_jobs(
     if status:
         filter_query["status"] = status
     if opening_date_from:
-        # Convert date string to datetime with time set to start of day
         from_date = datetime.fromisoformat(opening_date_from)
         filter_query["opening_date"] = {"$gte": from_date}
     if opening_date_to:
-        # Convert date string to datetime with time set to end of day (23:59:59)
         to_date = datetime.fromisoformat(opening_date_to)
         to_date = to_date.replace(hour=23, minute=59, second=59, microsecond=999999)
         if "opening_date" in filter_query:
@@ -145,7 +158,18 @@ async def get_all_jobs(
             filter_query["opening_date"] = {"$lte": to_date}
     if assigned_hr:
         filter_query["assigned_hr"] = assigned_hr
-    
+
+    # --- DEMAND CLOSED LOGIC ---
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    two_days_ago = now - timedelta(days=2)
+    open_jobs = await db.recruitment_portal.jobs.find({"status": "open", "opening_date": {"$lte": two_days_ago}}).to_list(length=200)
+    for job in open_jobs:
+        # Check if any candidate for this job is selected
+        selected = await db.recruitment_portal.candidates.find_one({"job_id": job["job_id"], "status": "selected"})
+        if not selected:
+            await db.recruitment_portal.jobs.update_one({"_id": job["_id"]}, {"$set": {"status": "demand closed"}})
+
     # Get all HR users for name mapping
     hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
     hr_user_map = {str(user["_id"]): user["name"] for user in hr_users}
@@ -155,17 +179,14 @@ async def get_all_jobs(
     for job in jobs:
         job["id"] = str(job["_id"])
         del job["_id"]
-        
         # Convert datetime fields to ISO format for JSON serialization
         if "created_at" in job and isinstance(job["created_at"], datetime):
             job["created_at"] = job["created_at"].isoformat()
         if "opening_date" in job and isinstance(job["opening_date"], datetime):
             job["opening_date"] = job["opening_date"].isoformat()
-        
         # Add HR user name if assigned
         if job.get("assigned_hr"):
             job["assigned_hr_name"] = hr_user_map.get(job["assigned_hr"], "Unknown")
-    
     return jobs
 
 @router.put("/jobs/{job_id}/allocate")
@@ -324,6 +345,10 @@ async def get_all_candidates(current_user: dict = Depends(get_current_admin_user
     jobs = await db.recruitment_portal.jobs.find({}).to_list(length=1000)
     job_map = {job["job_id"]: job["title"] for job in jobs}
     
+    # Get all HR users for name mapping
+    hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
+    hr_user_map = {str(user["_id"]): user["name"] for user in hr_users}
+    
     for candidate in candidates:
         candidate["id"] = str(candidate["_id"])
         del candidate["_id"]
@@ -341,5 +366,11 @@ async def get_all_candidates(current_user: dict = Depends(get_current_admin_user
                 candidate["title_position"] = job_map.get(candidate["job_id"], "Unknown Job")
             if not candidate.get("role_applied_for"):
                 candidate["role_applied_for"] = job_map.get(candidate["job_id"], "Unknown Job")
+        
+        # Add HR user information who created the candidate
+        if candidate.get("created_by"):
+            candidate["created_by_hr"] = hr_user_map.get(candidate["created_by"], "Unknown HR")
+        else:
+            candidate["created_by_hr"] = "Unknown HR"
     
     return candidates 

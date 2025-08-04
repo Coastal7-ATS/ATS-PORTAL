@@ -30,9 +30,11 @@ const AdminCandidates = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterAppliedFor, setFilterAppliedFor] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterHR, setFilterHR] = useState('')
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('')
   const [appliedFilterAppliedFor, setAppliedFilterAppliedFor] = useState('')
   const [appliedFilterStatus, setAppliedFilterStatus] = useState('')
+  const [appliedFilterHR, setAppliedFilterHR] = useState('')
 
   useEffect(() => {
     fetchCandidates()
@@ -97,6 +99,8 @@ const AdminCandidates = () => {
       preferred_interview_location: selectedCandidate.preferred_interview_location || '',
       interview_location: selectedCandidate.interview_location || '',
       availability_interview: selectedCandidate.availability_interview || '',
+      current_ctc: selectedCandidate.current_ctc || '',
+      expected_ctc: selectedCandidate.expected_ctc || '',
       roc_check_done: selectedCandidate.roc_check_done || '',
       applied_for_ibm_before: selectedCandidate.applied_for_ibm_before || '',
       is_organization_employee: selectedCandidate.is_organization_employee || '',
@@ -512,12 +516,15 @@ const AdminCandidates = () => {
 
   // --- SEARCH AND FILTER LOGIC ---
 
-  // Get unique values for Applied For and Status for filter dropdowns
+  // Get unique values for Applied For, Status, and HR for filter dropdowns
   const appliedForOptions = Array.from(
     new Set(candidates.map(c => c.applied_for || c.role_applied_for || '').filter(Boolean))
   )
   const statusOptions = Array.from(
     new Set(candidates.map(c => c.status || '').filter(Boolean))
+  )
+  const hrOptions = Array.from(
+    new Set(candidates.map(c => c.created_by_hr || '').filter(Boolean))
   )
 
   // Filtering and searching
@@ -532,6 +539,9 @@ const AdminCandidates = () => {
         candidate.phone,
         candidate.applied_for,
         candidate.role_applied_for,
+        candidate.created_by_hr,
+        candidate.current_ctc,
+        candidate.expected_ctc,
         candidate.experience,
         candidate.education,
         candidate.skills,
@@ -553,7 +563,12 @@ const AdminCandidates = () => {
       !appliedFilterStatus ||
       (candidate.status || '') === appliedFilterStatus
 
-    return matchesSearch && matchesAppliedFor && matchesStatus
+    // Filter: HR
+    const matchesHR =
+      !appliedFilterHR ||
+      (candidate.created_by_hr || '') === appliedFilterHR
+
+    return matchesSearch && matchesAppliedFor && matchesStatus && matchesHR
   })
 
   const handleApplySearch = () => {
@@ -563,15 +578,18 @@ const AdminCandidates = () => {
   const handleApplyFilters = () => {
     setAppliedFilterAppliedFor(filterAppliedFor)
     setAppliedFilterStatus(filterStatus)
+    setAppliedFilterHR(filterHR)
   }
 
   const handleClearAll = () => {
     setSearchTerm('')
     setFilterAppliedFor('')
     setFilterStatus('')
+    setFilterHR('')
     setAppliedSearchTerm('')
     setAppliedFilterAppliedFor('')
     setAppliedFilterStatus('')
+    setAppliedFilterHR('')
   }
 
   if (loading) {
@@ -643,6 +661,16 @@ const AdminCandidates = () => {
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
+            <select
+              value={filterHR}
+              onChange={e => setFilterHR(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white transition"
+            >
+              <option value="">All HR Users</option>
+              {hrOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
             <button
               onClick={handleApplyFilters}
               className="btn-secondary px-6"
@@ -657,7 +685,7 @@ const AdminCandidates = () => {
             </button>
           </div>
           
-          {(appliedFilterAppliedFor || appliedFilterStatus || appliedSearchTerm) && (
+          {(appliedFilterAppliedFor || appliedFilterStatus || appliedFilterHR || appliedSearchTerm) && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500">Active filters:</span>
               {appliedSearchTerm && (
@@ -668,6 +696,9 @@ const AdminCandidates = () => {
               )}
               {appliedFilterStatus && (
                 <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">Status: {appliedFilterStatus}</span>
+              )}
+              {appliedFilterHR && (
+                <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded">HR: {appliedFilterHR}</span>
               )}
             </div>
           )}
@@ -689,6 +720,9 @@ const AdminCandidates = () => {
                   <th>Email</th>
                   <th>Phone</th>
                   <th>Applied For</th>
+                  <th>Added By HR</th>
+                  <th>Current CTC</th>
+                  <th>Expected CTC</th>
                   <th>Experience</th>
                   <th>Education</th>
                   <th>Skills</th>
@@ -711,6 +745,9 @@ const AdminCandidates = () => {
                     <td className="text-slate-900">{candidate.email}</td>
                     <td className="text-slate-900">{candidate.phone}</td>
                     <td className="text-slate-900">{candidate.applied_for || candidate.role_applied_for || 'N/A'}</td>
+                    <td className="text-slate-900 font-medium text-blue-600">{candidate.created_by_hr || 'Unknown HR'}</td>
+                    <td className="text-slate-900">{candidate.current_ctc || 'N/A'}</td>
+                    <td className="text-slate-900">{candidate.expected_ctc || 'N/A'}</td>
                     <td className="text-slate-900">{candidate.experience}</td>
                     <td className="text-slate-900">{candidate.education}</td>
                     <td className="text-slate-900">{candidate.skills}</td>
@@ -839,6 +876,8 @@ const AdminCandidates = () => {
                     {renderField('Preferred Interview Location', selectedCandidate.preferred_interview_location)}
                     {renderField('Interview Location', selectedCandidate.interview_location)}
                     {renderField('Availability for Interview', selectedCandidate.availability_interview)}
+                    {renderField('Current CTC', selectedCandidate.current_ctc)}
+                    {renderField('Expected CTC', selectedCandidate.expected_ctc)}
                   </div>
                 </motion.div>
 
@@ -1170,6 +1209,18 @@ const AdminCandidates = () => {
                       <span className="font-medium text-gray-700">Applied Date:</span>
                       <span className="ml-2 text-gray-900">
                         {selectedCandidate.applied_date ? new Date(selectedCandidate.applied_date).toLocaleDateString() : 'Not available'}
+                      </span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium text-gray-700">Added By HR:</span>
+                      <span className="ml-2 text-gray-900 font-medium text-blue-600">
+                        {selectedCandidate.created_by_hr || 'Unknown HR'}
+                      </span>
+                    </div>
+                    <div className="mb-2">
+                      <span className="font-medium text-gray-700">Created Date:</span>
+                      <span className="ml-2 text-gray-900">
+                        {selectedCandidate.created_at ? new Date(selectedCandidate.created_at).toLocaleDateString() : 'Not available'}
                       </span>
                     </div>
                     <div className="mb-2 col-span-2">

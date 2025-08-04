@@ -63,7 +63,8 @@ const HRJobs = () => {
     education_xii_institute: '', education_xii_start_date: '', education_xii_end_date: '', education_xii_percentage: '',
     education_degree_name: '', education_degree_institute: '', education_degree_start_date: '', education_degree_end_date: '', education_degree_percentage: '',
     education_x: '', education_xii: '', education_degree: '', education_percentage: '', education_duration: '',
-    experience_entries: [], certifications: '', publications: '', references: '', linkedin: '', github: ''
+    experience_entries: [], certifications: '', publications: '', references: '', linkedin: '', github: '',
+    current_ctc: '', expected_ctc: ''
   })
   const navigate = useNavigate()
 
@@ -163,7 +164,9 @@ const HRJobs = () => {
         ...candidateForm,
         job_id: selectedJob.job_id,
         status: 'applied',
-        applied_date: new Date().toISOString()
+        applied_date: new Date().toISOString(),
+        current_ctc: candidateForm.current_ctc,
+        expected_ctc: candidateForm.expected_ctc
       }
       await api.post('/candidates', candidateData)
       toast.success('Candidate added successfully!')
@@ -175,7 +178,8 @@ const HRJobs = () => {
         education_xii_institute: '', education_xii_start_date: '', education_xii_end_date: '', education_xii_percentage: '',
         education_degree_name: '', education_degree_institute: '', education_degree_start_date: '', education_degree_end_date: '', education_degree_percentage: '',
         education_x: '', education_xii: '', education_degree: '', education_percentage: '', education_duration: '',
-        experience_entries: [], certifications: '', publications: '', references: '', linkedin: '', github: ''
+        experience_entries: [], certifications: '', publications: '', references: '', linkedin: '', github: '',
+        current_ctc: '', expected_ctc: ''
       })
     } catch (error) {
       const errorMessage = error.response?.data?.detail || 'Failed to add candidate'
@@ -283,9 +287,9 @@ const HRJobs = () => {
               >
                 <option value="">All Status</option>
                 <option value="open">Open</option>
-                <option value="allocated">Allocated</option>
                 <option value="closed">Closed</option>
-                <option value="submit">Submit</option>
+                <option value="submitted">Submitted</option>
+                <option value="demand closed">Demand Closed</option>
               </select>
             </div>
 
@@ -563,10 +567,9 @@ const HRJobs = () => {
                     onChange={e => setNewStatus(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   >
-                    <option value="allocated">Allocated</option>
                     <option value="open">Open</option>
                     <option value="closed">Closed</option>
-                    <option value="submit">Submit</option>
+                    <option value="submitted">Submitted</option>
                   </select>
                 </div>
 
@@ -964,6 +967,37 @@ const AddCandidateForm = ({ formData, setFormData, onSave }) => {
               onChange={e => handleChange('pan_number', e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               placeholder="ABCDE1234F"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Availability for Interview</label>
+            <input
+              type="text"
+              value={formData.availability_interview || ''}
+              onChange={e => handleChange('availability_interview', e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              placeholder="e.g. Weekdays, Weekends, Both"
+            />
+          </div>
+          <div></div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Current CTC</label>
+            <input
+              type="text"
+              value={formData.current_ctc || ''}
+              onChange={e => handleChange('current_ctc', e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              placeholder="e.g. 8 LPA"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Expected CTC</label>
+            <input
+              type="text"
+              value={formData.expected_ctc || ''}
+              onChange={e => handleChange('expected_ctc', e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              placeholder="e.g. 10 LPA"
             />
           </div>
         </div>
@@ -1385,7 +1419,8 @@ const AddCandidateForm = ({ formData, setFormData, onSave }) => {
             education_xii_institute: '', education_xii_start_date: '', education_xii_end_date: '', education_xii_percentage: '',
             education_degree_name: '', education_degree_institute: '', education_degree_start_date: '', education_degree_end_date: '', education_degree_percentage: '',
             education_x: '', education_xii: '', education_degree: '', education_percentage: '', education_duration: '',
-            experience_entries: [], certifications: '', publications: '', references: '', linkedin: '', github: ''
+            experience_entries: [], certifications: '', publications: '', references: '', linkedin: '', github: '',
+            current_ctc: '', expected_ctc: ''
           })}
           className="px-4 py-2 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200"
         >
