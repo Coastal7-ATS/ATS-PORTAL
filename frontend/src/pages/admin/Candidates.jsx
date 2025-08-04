@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, Edit, Save, X } from 'lucide-react'
+import { Eye, Edit, Save, X, Download } from 'lucide-react'
 import api from '../../services/api'
 import { toast } from 'react-toastify'
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, TextRun, BorderStyle } from 'docx'
 
 // Animation variants for modals and cards
 const modalVariants = {
@@ -592,6 +593,335 @@ const AdminCandidates = () => {
     setAppliedFilterHR('')
   }
 
+  // Export function to generate document with table formatting
+  const exportCandidateToDoc = async (candidate) => {
+    const formatValue = (value) => {
+      if (value === null || value === undefined || value === '') {
+        return 'Not provided'
+      }
+      if (Array.isArray(value)) {
+        return value.length > 0 ? value.join(', ') : 'Not provided'
+      }
+      return value.toString()
+    }
+
+    const formatDate = (dateString) => {
+      if (!dateString) return 'Not provided'
+      try {
+        return new Date(dateString).toLocaleDateString()
+      } catch {
+        return dateString
+      }
+    }
+
+    const createTable = (headers, rows) => {
+      const tableRows = [
+        new TableRow({
+          children: headers.map(header => 
+            new TableCell({
+              children: [new Paragraph({ text: header, style: 'Heading3' })],
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              shading: { fill: 'F2F2F2' }
+            })
+          )
+        }),
+        ...rows.map(row => 
+          new TableRow({
+            children: row.map(cell => 
+              new TableCell({
+                children: [new Paragraph({ text: cell })],
+                width: { size: 50, type: WidthType.PERCENTAGE }
+              })
+            )
+          })
+        )
+      ]
+
+      return new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: tableRows,
+        borders: {
+          top: { style: BorderStyle.SINGLE, size: 1 },
+          bottom: { style: BorderStyle.SINGLE, size: 1 },
+          left: { style: BorderStyle.SINGLE, size: 1 },
+          right: { style: BorderStyle.SINGLE, size: 1 },
+          insideHorizontal: { style: BorderStyle.SINGLE, size: 1 },
+          insideVertical: { style: BorderStyle.SINGLE, size: 1 }
+        }
+      })
+    }
+
+    try {
+      const children = [
+        new Paragraph({
+          text: `Candidate Profile - ${candidate.name}`,
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER
+        }),
+        new Paragraph({ text: '' }), // Spacing
+
+        // Personal Information
+        new Paragraph({ text: 'PERSONAL INFORMATION', heading: HeadingLevel.HEADING_2 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['Name', formatValue(candidate.name)],
+            ['Title/Position', formatValue(candidate.title_position)],
+            ['Email', formatValue(candidate.email)],
+            ['Phone', formatValue(candidate.phone)],
+            ['PAN Number', formatValue(candidate.pan_number)],
+            ['Passport Number', formatValue(candidate.passport_number)],
+            ['Current Location', formatValue(candidate.current_location)],
+            ['Hometown', formatValue(candidate.hometown)],
+            ['Preferred Interview Location', formatValue(candidate.preferred_interview_location)],
+            ['Interview Location', formatValue(candidate.interview_location)],
+            ['Availability Interview', formatValue(candidate.availability_interview)],
+            ['Current CTC', formatValue(candidate.current_ctc)],
+            ['Expected CTC', formatValue(candidate.expected_ctc)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // General Information
+        new Paragraph({ text: 'GENERAL INFORMATION', heading: HeadingLevel.HEADING_2 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['ROC Check Done', formatValue(candidate.roc_check_done)],
+            ['Applied for IBM Before', formatValue(candidate.applied_for_ibm_before)],
+            ['Is Organization Employee', formatValue(candidate.is_organization_employee)],
+            ['Date of Joining Organization', formatValue(candidate.date_of_joining_organization)],
+            ['Client Deployment Details', formatValue(candidate.client_deployment_details)],
+            ['Interested in Relocation', formatValue(candidate.interested_in_relocation)],
+            ['Willingness Work Shifts', formatValue(candidate.willingness_work_shifts)],
+            ['Role Applied For', formatValue(candidate.role_applied_for)],
+            ['Reason for Job Change', formatValue(candidate.reason_for_job_change)],
+            ['Current Role', formatValue(candidate.current_role)],
+            ['Notice Period', formatValue(candidate.notice_period)],
+            ['Payrolling Company Name', formatValue(candidate.payrolling_company_name)],
+            ['Education Authenticated UGC Check', formatValue(candidate.education_authenticated_ugc_check)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // Experience Information
+        new Paragraph({ text: 'EXPERIENCE INFORMATION', heading: HeadingLevel.HEADING_2 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['Total Experience', formatValue(candidate.total_experience)],
+            ['Relevant Experience', formatValue(candidate.relevant_experience)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // Education Details
+        new Paragraph({ text: 'EDUCATION DETAILS', heading: HeadingLevel.HEADING_2 }),
+        
+        // Class X
+        new Paragraph({ text: 'Class X', heading: HeadingLevel.HEADING_3 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['Institute', formatValue(candidate.education_x_institute)],
+            ['Percentage', formatValue(candidate.education_x_percentage)],
+            ['Start Date', formatValue(candidate.education_x_start_date)],
+            ['End Date', formatValue(candidate.education_x_end_date)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // Class XII
+        new Paragraph({ text: 'Class XII', heading: HeadingLevel.HEADING_3 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['Institute', formatValue(candidate.education_xii_institute)],
+            ['Percentage', formatValue(candidate.education_xii_percentage)],
+            ['Start Date', formatValue(candidate.education_xii_start_date)],
+            ['End Date', formatValue(candidate.education_xii_end_date)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // Degree
+        new Paragraph({ text: 'Degree', heading: HeadingLevel.HEADING_3 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['Degree Name', formatValue(candidate.education_degree_name)],
+            ['Institute', formatValue(candidate.education_degree_institute)],
+            ['Percentage', formatValue(candidate.education_degree_percentage)],
+            ['Start Date', formatValue(candidate.education_degree_start_date)],
+            ['End Date', formatValue(candidate.education_degree_end_date)],
+            ['Duration', formatValue(candidate.education_degree_duration)],
+            ['Additional Certifications', formatValue(candidate.education_additional_certifications)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // Assessment Information
+        new Paragraph({ text: 'ASSESSMENT INFORMATION', heading: HeadingLevel.HEADING_2 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['General Attitude', candidate.general_attitude_assessment ? `${candidate.general_attitude_assessment} - ${getAssessmentScoreText(candidate.general_attitude_assessment)}` : 'Not provided'],
+            ['Oral Communication', candidate.oral_communication_assessment ? `${candidate.oral_communication_assessment} - ${getAssessmentScoreText(candidate.oral_communication_assessment)}` : 'Not provided'],
+            ['General Attitude Comments', formatValue(candidate.general_attitude_comments)],
+            ['Oral Communication Comments', formatValue(candidate.oral_communication_comments)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // SME Information
+        new Paragraph({ text: 'SME INFORMATION', heading: HeadingLevel.HEADING_2 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['SME Name', formatValue(candidate.sme_name)],
+            ['SME Email', formatValue(candidate.sme_email)],
+            ['SME Mobile', formatValue(candidate.sme_mobile)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // SME Declaration
+        new Paragraph({ text: 'SME DECLARATION', heading: HeadingLevel.HEADING_2 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['Do Not Know Candidate', formatValue(candidate.do_not_know_candidate)],
+            ['Evaluated Resume with JD', formatValue(candidate.evaluated_resume_with_jd)],
+            ['Personally Spoken to Candidate', formatValue(candidate.personally_spoken_to_candidate)],
+            ['Available for Clarification', formatValue(candidate.available_for_clarification)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // Verification
+        new Paragraph({ text: 'VERIFICATION', heading: HeadingLevel.HEADING_2 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['Salary Slip Verified', formatValue(candidate.salary_slip_verified)],
+            ['Offer Letter Verified', formatValue(candidate.offer_letter_verified)],
+            ['Test Mail Sent to Organization', formatValue(candidate.test_mail_sent_to_organization)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // Additional Information
+        new Paragraph({ text: 'ADDITIONAL INFORMATION', heading: HeadingLevel.HEADING_2 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['Skills', formatValue(candidate.skills)],
+            ['Projects', formatValue(candidate.projects)],
+            ['Certifications', formatValue(candidate.certifications)],
+            ['Publications Title', formatValue(candidate.publications_title)],
+            ['Publications Date', formatValue(candidate.publications_date)],
+            ['Publications Publisher', formatValue(candidate.publications_publisher)],
+            ['Publications Description', formatValue(candidate.publications_description)],
+            ['References', formatValue(candidate.references)],
+            ['LinkedIn', formatValue(candidate.linkedin)],
+            ['GitHub', formatValue(candidate.github)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+
+        // Application Status
+        new Paragraph({ text: 'APPLICATION STATUS', heading: HeadingLevel.HEADING_2 }),
+        createTable(
+          ['Field', 'Value'],
+          [
+            ['Status', formatValue(candidate.status)],
+            ['Applied Date', formatDate(candidate.applied_date)],
+            ['Added By HR', formatValue(candidate.created_by_hr)],
+            ['Created Date', formatDate(candidate.created_at)],
+            ['Notes', formatValue(candidate.notes)]
+          ]
+        ),
+        new Paragraph({ text: '' }), // Spacing
+      ]
+
+      // Add Skills Assessment section if available
+      if (candidate.skill_assessments && candidate.skill_assessments.length > 0) {
+        children.push(
+          new Paragraph({ text: 'SKILLS ASSESSMENT', heading: HeadingLevel.HEADING_2 }),
+          createTable(
+            ['Skill Name', 'Years Experience', 'Last Used', 'Vendor SME Score'],
+            candidate.skill_assessments.map(skill => [
+              formatValue(skill.skill_name),
+              formatValue(skill.years_of_experience),
+              formatValue(skill.last_used_year),
+              formatValue(skill.vendor_sme_assessment_score)
+            ])
+          ),
+          new Paragraph({ text: '' }) // Spacing
+        )
+      }
+
+      // Add Work Experience section if available
+      if (candidate.work_experience_entries && candidate.work_experience_entries.length > 0) {
+        children.push(new Paragraph({ text: 'WORK EXPERIENCE', heading: HeadingLevel.HEADING_2 }))
+        
+        candidate.work_experience_entries.forEach((exp, index) => {
+          children.push(
+            new Paragraph({ text: `Organization ${index + 1}`, heading: HeadingLevel.HEADING_3 }),
+            createTable(
+              ['Field', 'Value'],
+              [
+                ['Organization', formatValue(exp.organization)],
+                ['End Client', formatValue(exp.end_client)],
+                ['Project', formatValue(exp.project)],
+                ['Start Date', formatValue(exp.start_month_year)],
+                ['End Date', formatValue(exp.end_month_year)],
+                ['Technology/Tools', formatValue(exp.technology_tools)],
+                ['Role/Designation', formatValue(exp.role_designation)],
+                ['Additional Information', formatValue(exp.additional_information)]
+              ]
+            )
+          )
+
+          if (exp.responsibilities && exp.responsibilities.length > 0) {
+            children.push(
+              new Paragraph({ text: 'Responsibilities:', heading: HeadingLevel.HEADING_4 }),
+              ...exp.responsibilities.map(resp => new Paragraph({ text: `• ${resp}` }))
+            )
+          }
+          children.push(new Paragraph({ text: '' })) // Spacing
+        })
+      }
+
+      // Add generated timestamp
+      children.push(
+        new Paragraph({ text: `Generated on: ${new Date().toLocaleString()}`, alignment: AlignmentType.RIGHT })
+      )
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: children
+        }]
+      })
+
+      const blob = await Packer.toBlob(doc)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `candidate_${new Date().toISOString().split('T')[0]}.docx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      toast.success('Candidate profile exported successfully')
+    } catch (error) {
+      console.error('Error generating document:', error)
+      toast.error('Failed to export candidate profile')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -783,6 +1113,13 @@ const AdminCandidates = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </button>
+                        <button
+                          onClick={() => exportCandidateToDoc(candidate)}
+                          className="p-2 rounded-lg text-info-600 hover:bg-info-50 hover:text-info-700 transition-colors duration-200"
+                          title="Export Details"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </motion.tr>
@@ -821,6 +1158,13 @@ const AdminCandidates = () => {
                           className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                         >
                           <Edit className="h-4 w-4" /> Edit
+                        </button>
+                        <button
+                          onClick={() => exportCandidateToDoc(selectedCandidate)}
+                          className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                          title="Export Details"
+                        >
+                          <Download className="h-4 w-4" /> Export
                         </button>
                         <button
                           onClick={() => setShowViewModal(false)}
