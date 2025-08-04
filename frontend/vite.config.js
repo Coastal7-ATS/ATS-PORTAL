@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://13.200.243.193:8000',
+        target: process.env.VITE_BACKEND_URL || 'http://13.200.243.193:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
