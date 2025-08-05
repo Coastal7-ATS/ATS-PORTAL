@@ -11,7 +11,8 @@ import {
   Calendar,
   MapPin,
   DollarSign,
-  User
+  User,
+  TrendingUp
 } from 'lucide-react'
 import { Doughnut, Bar } from 'react-chartjs-2'
 import {
@@ -86,38 +87,44 @@ const HRDashboard = () => {
       name: 'Closed Jobs',
       value: dashboardData?.closed_jobs || 0,
       icon: XCircle,
-      color: 'from-slate-500 to-gray-600',
+      color: 'from-slate-500 to-gray-600'
+    },
+    {
+      name: 'Submitted Jobs',
+      value: dashboardData?.submitted_jobs || 0,
+      icon: TrendingUp,
+      color: 'from-purple-500 to-indigo-500'
+    },
+    {
+      name: 'Demand Closed',
+      value: dashboardData?.demand_closed_jobs || 0,
+      icon: XCircle,
+      color: 'from-red-500 to-pink-500'
     },
     {
       name: 'Total Candidates',
       value: dashboardData?.total_candidates || 0,
       icon: Users,
-      color: 'from-purple-500 to-indigo-500',
-    },
-    {
-      name: 'Selected Candidates',
-      value: dashboardData?.selected_candidates || 0,
-      icon: CheckCircle,
-      color: 'from-success-500 to-emerald-500',
+      color: 'from-green-500 to-emerald-500'
     },
   ]
 
   // Chart data
   const jobStatusData = {
-    labels: ['Open', 'Allocated', 'Closed', 'Submitted'],
+    labels: ['Open', 'Closed', 'Submitted', 'Demand Closed'],
     datasets: [
       {
         data: [
           dashboardData?.open_jobs || 0,
-          dashboardData?.allocated_jobs || 0,
           dashboardData?.closed_jobs || 0,
           dashboardData?.submitted_jobs || 0,
+          dashboardData?.demand_closed_jobs || 0,
         ],
         backgroundColor: [
           '#F59E0B',
-          '#10B981',
           '#6B7280',
           '#8B5CF6',
+          '#EF4444',
         ],
         borderWidth: 2,
         borderColor: '#fff',
@@ -349,7 +356,7 @@ const HRDashboard = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-3 w-3" />
-                        <span>{new Date(job.opening_date).toLocaleDateString()}</span>
+                        <span>{job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}</span>
                       </div>
                     </div>
                   </motion.div>

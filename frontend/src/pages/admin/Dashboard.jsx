@@ -107,20 +107,20 @@ const AdminDashboard = () => {
   }
 
   const jobStatusData = {
-    labels: ['Open', 'Allocated', 'Closed', 'Submitted'],
+    labels: ['Open', 'Closed', 'Submitted', 'Demand Closed'],
     datasets: [
       {
         data: [
           Number(dashboardData?.open_jobs) || 0,
-          Number(dashboardData?.allocated_jobs) || 0,
           Number(dashboardData?.closed_jobs) || 0,
           Number(dashboardData?.submitted_jobs) || 0,
+          Number(dashboardData?.demand_closed_jobs) || 0,
         ],
         backgroundColor: [
           '#3B82F6',
-          '#10B981',
           '#6B7280',
           '#8B5CF6',
+          '#EF4444',
         ],
         borderWidth: 2,
         borderColor: '#fff',
@@ -142,22 +142,28 @@ const AdminDashboard = () => {
       color: 'from-warning-500 to-orange-500'
     },
     {
-      name: 'Allocated Jobs',
-      value: Number(dashboardData?.allocated_jobs) || 0,
-      icon: TrendingUp,
-      color: 'from-success-500 to-emerald-500'
-    },
-    {
       name: 'Closed Jobs',
       value: Number(dashboardData?.closed_jobs) || 0,
       icon: XCircle,
       color: 'from-slate-500 to-gray-600'
     },
     {
+      name: 'Submitted Jobs',
+      value: Number(dashboardData?.submitted_jobs) || 0,
+      icon: TrendingUp,
+      color: 'from-purple-500 to-indigo-500'
+    },
+    {
+      name: 'Demand Closed',
+      value: Number(dashboardData?.demand_closed_jobs) || 0,
+      icon: XCircle,
+      color: 'from-red-500 to-pink-500'
+    },
+    {
       name: 'Total Candidates',
       value: Number(dashboardData?.total_candidates) || 0,
       icon: Users,
-      color: 'from-purple-500 to-indigo-500'
+      color: 'from-green-500 to-emerald-500'
     },
   ]
   
@@ -173,16 +179,6 @@ const AdminDashboard = () => {
         <div>
           <h1 className="text-4xl font-bold gradient-text mb-2">Admin Dashboard</h1>
           <p className="text-slate-600 text-lg">Overview of recruitment activities and analytics</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm text-slate-500">Last updated</p>
-            <p className="text-sm font-medium text-slate-700">{formatLastUpdate(lastUpdate)}</p>
-          </div>
-          <button className="btn-primary">
-            <Plus className="h-4 w-4" />
-            Add Job
-          </button>
         </div>
       </motion.div>
 
@@ -313,7 +309,7 @@ const AdminDashboard = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-3 w-3" />
-                      <span>{new Date(job.opening_date).toLocaleDateString()}</span>
+                      <span>{job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}</span>
                     </div>
                   </div>
                 </motion.div>

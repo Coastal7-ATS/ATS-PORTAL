@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from datetime import datetime, timezone
 from bson import ObjectId
-from typing import Optional
+from typing import Optional, List
 from models import CandidateCreate, CandidateUpdate
 from routes.auth import get_current_user, get_current_admin_user, get_current_hr_user
 from database import get_database
@@ -9,10 +9,70 @@ from fastapi.responses import JSONResponse
 
 router = APIRouter(tags=["Shared"])
 
+async def update_expired_job_statuses():
+    """
+    Shared function to update job statuses for expired jobs.
+    Checks all open jobs that have passed their end date and updates them to 'demand closed'
+    if they don't have any selected candidates.
+    """
+    try:
+        db = await get_database()
+        now = datetime.now(timezone.utc)
+        
+        # Find all open jobs that have passed their end date
+        # Convert current date to string format for comparison
+        current_date_str = now.strftime("%Y-%m-%d")
+        
+        open_jobs_past_end = await db.recruitment_portal.jobs.find({
+            "status": "open", 
+            "end_date": {"$lte": current_date_str}
+        }).to_list(length=200)
+        
+        print(f"Found {len(open_jobs_past_end)} open jobs past end date")
+        
+        updated_count = 0
+        for job in open_jobs_past_end:
+            try:
+                # Check if any candidate for this job is selected
+                selected = await db.recruitment_portal.candidates.find_one({
+                    "job_id": job["job_id"], 
+                    "status": "selected"
+                })
+                
+                if not selected:
+                    # No selected candidates found, update to demand closed
+                    result = await db.recruitment_portal.jobs.update_one(
+                        {"_id": job["_id"]}, 
+                        {"$set": {"status": "demand closed"}}
+                    )
+                    if result.modified_count > 0:
+                        updated_count += 1
+                        print(f"Updated job {job.get('job_id', 'unknown')} to demand closed")
+            except Exception as e:
+                print(f"Error processing job {job.get('job_id', 'unknown')}: {e}")
+                continue
+        
+        print(f"Total jobs updated to demand closed: {updated_count}")
+        return updated_count
+    except Exception as e:
+        print(f"Error in update_expired_job_statuses: {e}")
+        return 0
+
 @router.get("/jobs/{job_id}")
 async def get_job_details(job_id: str, current_user: dict = Depends(get_current_user)):
     db = await get_database()
-    job = await db.recruitment_portal.jobs.find_one({"_id": ObjectId(job_id)})
+    
+    # Update expired job statuses first
+    await update_expired_job_statuses()
+    
+    # Try to find job by job_id field first, then by _id
+    job = await db.recruitment_portal.jobs.find_one({"job_id": job_id})
+    if not job:
+        # Fallback to _id if job_id not found
+        try:
+            job = await db.recruitment_portal.jobs.find_one({"_id": ObjectId(job_id)})
+        except:
+            pass
     
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -130,6 +190,10 @@ async def update_candidate_status(
     current_user: dict = Depends(get_current_user)
 ):
     db = await get_database()
+    
+    # Update expired job statuses first
+    await update_expired_job_statuses()
+    
     candidate = await db.recruitment_portal.candidates.find_one({"_id": ObjectId(candidate_id)})
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")

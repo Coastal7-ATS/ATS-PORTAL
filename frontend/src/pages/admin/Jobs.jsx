@@ -23,15 +23,15 @@ const AdminJobs = () => {
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
     status: '',
-    opening_date_from: '',
-    opening_date_to: '',
+    start_date_from: '',
+    start_date_to: '',
     assigned_hr: ''
   })
   const [search, setSearch] = useState('')
   const [appliedFilters, setAppliedFilters] = useState({
     status: '',
-    opening_date_from: '',
-    opening_date_to: '',
+    start_date_from: '',
+    start_date_to: '',
     assigned_hr: ''
   })
   const [appliedSearch, setAppliedSearch] = useState('')
@@ -86,16 +86,16 @@ const AdminJobs = () => {
     if (ALLOWED_STATUSES.includes(filtersObj.status)) valid.status = filtersObj.status
     // Only allow valid date strings (YYYY-MM-DD or empty)
     if (
-      !filtersObj.opening_date_from ||
-      /^\d{4}-\d{2}-\d{2}$/.test(filtersObj.opening_date_from)
+      !filtersObj.start_date_from ||
+      /^\d{4}-\d{2}-\d{2}$/.test(filtersObj.start_date_from)
     ) {
-      valid.opening_date_from = filtersObj.opening_date_from
+      valid.start_date_from = filtersObj.start_date_from
     }
     if (
-      !filtersObj.opening_date_to ||
-      /^\d{4}-\d{2}-\d{2}$/.test(filtersObj.opening_date_to)
+      !filtersObj.start_date_to ||
+      /^\d{4}-\d{2}-\d{2}$/.test(filtersObj.start_date_to)
     ) {
-      valid.opening_date_to = filtersObj.opening_date_to
+      valid.start_date_to = filtersObj.start_date_to
     }
     // Only allow assigned_hr if it's in hrUsers or empty
     if (
@@ -113,8 +113,8 @@ const AdminJobs = () => {
       const params = new URLSearchParams()
       const validFilters = getValidFilters(appliedFilters)
       if (validFilters.status) params.append('status', validFilters.status)
-      if (validFilters.opening_date_from) params.append('opening_date_from', validFilters.opening_date_from)
-      if (validFilters.opening_date_to) params.append('opening_date_to', validFilters.opening_date_to)
+      if (validFilters.start_date_from) params.append('start_date_from', validFilters.start_date_from)
+      if (validFilters.start_date_to) params.append('start_date_to', validFilters.start_date_to)
       if (validFilters.assigned_hr) params.append('assigned_hr', validFilters.assigned_hr)
       // Only send allowed filters, never send search to backend
       const response = await api.get(`/admin/jobs?${params.toString()}`)
@@ -133,8 +133,8 @@ const AdminJobs = () => {
   const isAnyFilterActive = () => {
     return (
       filters.status !== '' ||
-      filters.opening_date_from !== '' ||
-      filters.opening_date_to !== '' ||
+      filters.start_date_from !== '' ||
+      filters.start_date_to !== '' ||
       filters.assigned_hr !== ''
     )
   }
@@ -149,8 +149,8 @@ const AdminJobs = () => {
     // Only compare allowed filter fields
     return (
       filters.status !== appliedFilters.status ||
-      filters.opening_date_from !== appliedFilters.opening_date_from ||
-      filters.opening_date_to !== appliedFilters.opening_date_to ||
+      filters.start_date_from !== appliedFilters.start_date_from ||
+      filters.start_date_to !== appliedFilters.start_date_to ||
       filters.assigned_hr !== appliedFilters.assigned_hr ||
       search !== appliedSearch
     )
@@ -160,13 +160,13 @@ const AdminJobs = () => {
   const isClearAllEnabled = () => {
     return (
       filters.status !== '' ||
-      filters.opening_date_from !== '' ||
-      filters.opening_date_to !== '' ||
+      filters.start_date_from !== '' ||
+      filters.start_date_to !== '' ||
       filters.assigned_hr !== '' ||
       search !== '' ||
       appliedFilters.status !== '' ||
-      appliedFilters.opening_date_from !== '' ||
-      appliedFilters.opening_date_to !== '' ||
+      appliedFilters.start_date_from !== '' ||
+      appliedFilters.start_date_to !== '' ||
       appliedFilters.assigned_hr !== '' ||
       appliedSearch !== ''
     )
@@ -182,8 +182,8 @@ const AdminJobs = () => {
     // Only apply allowed filters
     setAppliedFilters({
       status: filters.status,
-      opening_date_from: filters.opening_date_from,
-      opening_date_to: filters.opening_date_to,
+      start_date_from: filters.start_date_from,
+      start_date_to: filters.start_date_to,
       assigned_hr: filters.assigned_hr
     })
     setAppliedSearch(search)
@@ -201,15 +201,15 @@ const AdminJobs = () => {
     setSearch('')
     setFilters({
       status: '',
-      opening_date_from: '',
-      opening_date_to: '',
+      start_date_from: '',
+      start_date_to: '',
       assigned_hr: ''
     })
     setAppliedSearch('')
     setAppliedFilters({
       status: '',
-      opening_date_from: '',
-      opening_date_to: '',
+      start_date_from: '',
+      start_date_to: '',
       assigned_hr: ''
     })
     fetchJobs()
@@ -233,15 +233,15 @@ const AdminJobs = () => {
   const clearFilters = () => {
     setFilters({
       status: '',
-      opening_date_from: '',
-      opening_date_to: '',
+      start_date_from: '',
+      start_date_to: '',
       assigned_hr: ''
     })
     setSearch('')
     setAppliedFilters({
       status: '',
-      opening_date_from: '',
-      opening_date_to: '',
+      start_date_from: '',
+      start_date_to: '',
       assigned_hr: ''
     })
     setAppliedSearch('')
@@ -258,19 +258,19 @@ const AdminJobs = () => {
     ) {
       return false
     }
-    // Opening date from
+    // Start date from
     if (
-      appliedFilters.opening_date_from &&
-      job.opening_date &&
-      new Date(job.opening_date) < new Date(appliedFilters.opening_date_from)
+      appliedFilters.start_date_from &&
+      job.start_date &&
+      new Date(job.start_date) < new Date(appliedFilters.start_date_from)
     ) {
       return false
     }
-    // Opening date to
+    // Start date to
     if (
-      appliedFilters.opening_date_to &&
-      job.opening_date &&
-      new Date(job.opening_date) > new Date(appliedFilters.opening_date_to)
+      appliedFilters.start_date_to &&
+      job.start_date &&
+      new Date(job.start_date) > new Date(appliedFilters.start_date_to)
     ) {
       return false
     }
@@ -396,28 +396,28 @@ const AdminJobs = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Opening Date From</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date From</label>
                   <input
                     type="date"
-                    value={filters.opening_date_from}
+                    value={filters.start_date_from}
                     onChange={(e) => {
                       const value = e.target.value
                       if (!value || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                        setFilters({ ...filters, opening_date_from: value })
+                        setFilters({ ...filters, start_date_from: value })
                       }
                     }}
                     className="input-field"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Opening Date To</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date To</label>
                   <input
                     type="date"
-                    value={filters.opening_date_to}
+                    value={filters.start_date_to}
                     onChange={(e) => {
                       const value = e.target.value
                       if (!value || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                        setFilters({ ...filters, opening_date_to: value })
+                        setFilters({ ...filters, start_date_to: value })
                       }
                     }}
                     className="input-field"
@@ -500,9 +500,11 @@ const AdminJobs = () => {
                   <th>Title</th>
                   <th>Location</th>
                   <th>CTC</th>
+                  <th>CSA ID</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
                   <th>Assigned To</th>
                   <th>Status</th>
-                  <th>Opening Date</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -539,6 +541,25 @@ const AdminJobs = () => {
                       </div>
                     </td>
                     <td>
+                      <span className="font-mono text-sm">{job.csa_id || 'N/A'}</span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-slate-400" />
+                        <span>
+                          {job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-slate-400" />
+                        <span>
+                          {job.end_date ? new Date(job.end_date).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-slate-400" />
                         <span>{job.assigned_hr_name || 'Unassigned'}</span>
@@ -548,14 +569,6 @@ const AdminJobs = () => {
                       <span className={`badge ${getStatusColor(job.status)}`}>
                         {job.status}
                       </span>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                        <span>
-                          {job.opening_date ? new Date(job.opening_date).toLocaleDateString() : 'N/A'}
-                        </span>
-                      </div>
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
@@ -624,9 +637,11 @@ const AdminJobs = () => {
                   } />
                   <Detail label="Title" value={viewJob.title} />
                   <Detail label="Location" value={viewJob.location} />
+                  <Detail label="CSA ID" value={viewJob.csa_id} />
                   <Detail label="CTC" value={viewJob.salary_package} />
+                  <Detail label="Start Date" value={viewJob.start_date ? new Date(viewJob.start_date).toLocaleDateString() : 'N/A'} />
+                  <Detail label="End Date" value={viewJob.end_date ? new Date(viewJob.end_date).toLocaleDateString() : 'N/A'} />
                   <Detail label="Assigned To" value={viewJob.assigned_hr_name || 'Unassigned'} />
-                  <Detail label="Opening Date" value={viewJob.opening_date ? new Date(viewJob.opening_date).toLocaleDateString() : 'N/A'} />
                   <Detail label="Source" value={viewJob.source_company} />
                 </div>
                 

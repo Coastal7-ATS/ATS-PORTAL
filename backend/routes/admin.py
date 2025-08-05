@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
 from typing import List, Optional
 import pandas as pd
@@ -7,6 +7,7 @@ import random
 from models import UserCreate
 from routes.auth import get_current_admin_user
 from database import get_database
+from routes.shared import update_expired_job_statuses
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -25,7 +26,7 @@ async def upload_csv(file: UploadFile = File(...), current_user: dict = Depends(
         df = pd.read_csv(file.file)
         
         # Validate required columns
-        required_columns = ['title', 'description', 'location', 'ctc']
+        required_columns = ['title', 'description', 'location', 'ctc', 'csa_id', 'start_date', 'end_date']
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise HTTPException(status_code=400, detail=f"Missing required columns: {missing_columns}")
@@ -35,17 +36,23 @@ async def upload_csv(file: UploadFile = File(...), current_user: dict = Depends(
             # Generate unique job ID
             job_id = f"jb{datetime.now().strftime('%m%d%H%M')}{random.randint(10, 99)}"
             
+            # Parse dates from CSV
+            start_date = datetime.fromisoformat(row['start_date']) if row['start_date'] else datetime.now(timezone.utc)
+            end_date = datetime.fromisoformat(row['end_date']) if row['end_date'] else datetime.now(timezone.utc)
+            
             job_data = {
                 "job_id": job_id,
                 "title": row['title'],
                 "description": row['description'],
                 "location": row['location'],
                 "salary_package": row['ctc'],
+                "csa_id": row['csa_id'],
+                "start_date": start_date,
+                "end_date": end_date,
                 "source_company": "CSV Upload",
                 "uploaded_by": str(current_user["_id"]),
                 "status": "open",
-                "opening_date": datetime.now(),
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc)
             }
             
             result = await db.recruitment_portal.jobs.insert_one(job_data)
@@ -70,9 +77,14 @@ async def add_job(job_data: dict, current_user: dict = Depends(get_current_admin
     if status not in MANUAL_JOB_STATUSES:
         status = "open"
     job_data["status"] = status
-    job_data["opening_date"] = datetime.now()
-    job_data["created_at"] = datetime.utcnow()
+    job_data["created_at"] = datetime.now(timezone.utc)
     job_data["source_company"] = "Manual Entry"
+    
+    # Set default dates if not provided
+    if "start_date" not in job_data:
+        job_data["start_date"] = datetime.now(timezone.utc)
+    if "end_date" not in job_data:
+        job_data["end_date"] = datetime.now(timezone.utc)
     
     result = await db.recruitment_portal.jobs.insert_one(job_data)
     
@@ -93,10 +105,15 @@ async def add_jobs_bulk(jobs_data: List[dict], current_user: dict = Depends(get_
         if status not in MANUAL_JOB_STATUSES:
             status = "open"
         job_data["status"] = status
-        job_data["opening_date"] = datetime.now()
-        job_data["created_at"] = datetime.utcnow()
+        job_data["created_at"] = datetime.now(timezone.utc)
         job_data["salary_package"] = job_data.get("ctc", "")
         job_data["source_company"] = "CSV Upload"
+        
+        # Set default dates if not provided
+        if "start_date" not in job_data:
+            job_data["start_date"] = datetime.now(timezone.utc)
+        if "end_date" not in job_data:
+            job_data["end_date"] = datetime.now(timezone.utc)
         
         result = await db.recruitment_portal.jobs.insert_one(job_data)
         jobs_added += 1
@@ -135,40 +152,32 @@ async def update_job(
 @router.get("/jobs")
 async def get_all_jobs(
     status: Optional[str] = None,
-    opening_date_from: Optional[str] = None,
-    opening_date_to: Optional[str] = None,
+    start_date_from: Optional[str] = None,
+    start_date_to: Optional[str] = None,
     assigned_hr: Optional[str] = None,
     current_user: dict = Depends(get_current_admin_user)
 ):
     db = await get_database()
     
+    # Update expired job statuses first
+    await update_expired_job_statuses()
+    
     # Build filter
     filter_query = {}
     if status:
         filter_query["status"] = status
-    if opening_date_from:
-        from_date = datetime.fromisoformat(opening_date_from)
-        filter_query["opening_date"] = {"$gte": from_date}
-    if opening_date_to:
-        to_date = datetime.fromisoformat(opening_date_to)
+    if start_date_from:
+        from_date = datetime.fromisoformat(start_date_from)
+        filter_query["start_date"] = {"$gte": from_date}
+    if start_date_to:
+        to_date = datetime.fromisoformat(start_date_to)
         to_date = to_date.replace(hour=23, minute=59, second=59, microsecond=999999)
-        if "opening_date" in filter_query:
-            filter_query["opening_date"]["$lte"] = to_date
+        if "start_date" in filter_query:
+            filter_query["start_date"]["$lte"] = to_date
         else:
-            filter_query["opening_date"] = {"$lte": to_date}
+            filter_query["start_date"] = {"$lte": to_date}
     if assigned_hr:
         filter_query["assigned_hr"] = assigned_hr
-
-    # --- DEMAND CLOSED LOGIC ---
-    from datetime import datetime, timedelta
-    now = datetime.utcnow()
-    two_days_ago = now - timedelta(days=2)
-    open_jobs = await db.recruitment_portal.jobs.find({"status": "open", "opening_date": {"$lte": two_days_ago}}).to_list(length=200)
-    for job in open_jobs:
-        # Check if any candidate for this job is selected
-        selected = await db.recruitment_portal.candidates.find_one({"job_id": job["job_id"], "status": "selected"})
-        if not selected:
-            await db.recruitment_portal.jobs.update_one({"_id": job["_id"]}, {"$set": {"status": "demand closed"}})
 
     # Get all HR users for name mapping
     hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
@@ -182,8 +191,10 @@ async def get_all_jobs(
         # Convert datetime fields to ISO format for JSON serialization
         if "created_at" in job and isinstance(job["created_at"], datetime):
             job["created_at"] = job["created_at"].isoformat()
-        if "opening_date" in job and isinstance(job["opening_date"], datetime):
-            job["opening_date"] = job["opening_date"].isoformat()
+        if "start_date" in job and isinstance(job["start_date"], datetime):
+            job["start_date"] = job["start_date"].isoformat()
+        if "end_date" in job and isinstance(job["end_date"], datetime):
+            job["end_date"] = job["end_date"].isoformat()
         # Add HR user name if assigned
         if job.get("assigned_hr"):
             job["assigned_hr_name"] = hr_user_map.get(job["assigned_hr"], "Unknown")
@@ -196,6 +207,9 @@ async def allocate_job(
     current_user: dict = Depends(get_current_admin_user)
 ):
     db = await get_database()
+    
+    # Update expired job statuses first
+    await update_expired_job_statuses()
     
     # Verify HR user exists
     hr_user = await db.recruitment_portal.users.find_one({"_id": ObjectId(hr_id), "role": "hr"})
@@ -240,7 +254,7 @@ async def create_hr_user(user_data: dict, current_user: dict = Depends(get_curre
     # Create new HR user
     from routes.auth import get_password_hash
     
-    created_at = datetime.utcnow()
+    created_at = datetime.now(timezone.utc)
     user_data["role"] = "hr"
     user_data["password"] = get_password_hash(user_data["password"])
     user_data["created_at"] = created_at
@@ -308,12 +322,15 @@ async def update_hr_user(
 async def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
     db = await get_database()
     
+    # Update expired job statuses first
+    await update_expired_job_statuses()
+    
     # Get job counts
     total_jobs = await db.recruitment_portal.jobs.count_documents({})
     open_jobs = await db.recruitment_portal.jobs.count_documents({"status": "open"})
-    allocated_jobs = await db.recruitment_portal.jobs.count_documents({"status": "allocated"})
     closed_jobs = await db.recruitment_portal.jobs.count_documents({"status": "closed"})
     submitted_jobs = await db.recruitment_portal.jobs.count_documents({"status": "submit"})
+    demand_closed_jobs = await db.recruitment_portal.jobs.count_documents({"status": "demand closed"})
     
     # Get candidate counts
     total_candidates = await db.recruitment_portal.candidates.count_documents({})
@@ -326,9 +343,9 @@ async def get_admin_dashboard(current_user: dict = Depends(get_current_admin_use
     return {
         "total_jobs": total_jobs,
         "open_jobs": open_jobs,
-        "allocated_jobs": allocated_jobs,
         "closed_jobs": closed_jobs,
         "submitted_jobs": submitted_jobs,
+        "demand_closed_jobs": demand_closed_jobs,
         "total_candidates": total_candidates,
         "selected_candidates": selected_candidates,
         "rejected_candidates": rejected_candidates,
@@ -338,6 +355,9 @@ async def get_admin_dashboard(current_user: dict = Depends(get_current_admin_use
 @router.get("/candidates")
 async def get_all_candidates(current_user: dict = Depends(get_current_admin_user)):
     db = await get_database()
+    
+    # Update expired job statuses first
+    await update_expired_job_statuses()
     
     candidates = await db.recruitment_portal.candidates.find({}).sort("created_at", -1).to_list(length=100)
     

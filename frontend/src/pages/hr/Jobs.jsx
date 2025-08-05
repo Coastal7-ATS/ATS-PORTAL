@@ -355,8 +355,10 @@ const HRJobs = () => {
                   <th>Job Details</th>
                   <th>Location</th>
                   <th>Package</th>
+                  <th>CSA ID</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
                   <th>Status</th>
-                  <th>Posted Date</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -390,15 +392,24 @@ const HRJobs = () => {
                       </div>
                     </td>
                     <td>
-                      <span className={`badge ${getStatusColor(job.status)}`}>
-                        {job.status}
-                      </span>
+                      <span className="font-mono text-sm">{job.csa_id || 'N/A'}</span>
                     </td>
                     <td>
                       <div className="flex items-center text-sm text-slate-900">
                         <Calendar className="h-4 w-4 mr-2 text-slate-400" />
-                        {new Date(job.opening_date).toLocaleDateString()}
+                        {job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}
                       </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center text-sm text-slate-900">
+                        <Calendar className="h-4 w-4 mr-2 text-slate-400" />
+                        {job.end_date ? new Date(job.end_date).toLocaleDateString() : 'N/A'}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge ${getStatusColor(job.status)}`}>
+                        {job.status}
+                      </span>
                     </td>
                     <td>
                       <div className="flex items-center gap-2">

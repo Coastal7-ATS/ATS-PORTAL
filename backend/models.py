@@ -20,6 +20,9 @@ class JobBase(BaseModel):
     location: str
     salary_package: str
     source_company: str
+    csa_id: str  # 6 character alphanumeric
+    start_date: datetime
+    end_date: datetime
 
 class JobCreate(JobBase):
     pass

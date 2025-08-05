@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from typing import Optional
 from routes.auth import get_current_hr_user
 from database import get_database
+from routes.shared import update_expired_job_statuses
 
 router = APIRouter(prefix="/hr", tags=["HR"])
 
@@ -17,19 +18,13 @@ async def get_hr_jobs(
 ):
     db = await get_database()
     
+    # Update expired job statuses first
+    await update_expired_job_statuses()
+    
     # Build filter query
     filter_query = {"assigned_hr": str(current_user["_id"])}
     if status:
         filter_query["status"] = status
-
-    # --- DEMAND CLOSED LOGIC ---
-    now = datetime.utcnow()
-    two_days_ago = now - timedelta(days=2)
-    open_jobs = await db.recruitment_portal.jobs.find({"status": "open", "assigned_hr": str(current_user["_id"]), "opening_date": {"$lte": two_days_ago}}).to_list(length=200)
-    for job in open_jobs:
-        selected = await db.recruitment_portal.candidates.find_one({"job_id": job["job_id"], "status": "selected"})
-        if not selected:
-            await db.recruitment_portal.jobs.update_one({"_id": job["_id"]}, {"$set": {"status": "demand closed"}})
 
     jobs = await db.recruitment_portal.jobs.find(filter_query).sort("created_at", -1).to_list(length=100)
     
@@ -39,8 +34,10 @@ async def get_hr_jobs(
         # Convert datetime fields to ISO format for JSON serialization
         if "created_at" in job and isinstance(job["created_at"], datetime):
             job["created_at"] = job["created_at"].isoformat()
-        if "opening_date" in job and isinstance(job["opening_date"], datetime):
-            job["opening_date"] = job["opening_date"].isoformat()
+        if "start_date" in job and isinstance(job["start_date"], datetime):
+            job["start_date"] = job["start_date"].isoformat()
+        if "end_date" in job and isinstance(job["end_date"], datetime):
+            job["end_date"] = job["end_date"].isoformat()
     
     return jobs
 
@@ -71,6 +68,9 @@ async def get_candidates_for_job(
     current_user: dict = Depends(get_current_hr_user)
 ):
     db = await get_database()
+    
+    # Update expired job statuses first
+    await update_expired_job_statuses()
     
     # Verify job is allocated to this HR
     job = await db.recruitment_portal.jobs.find_one({
@@ -108,6 +108,9 @@ async def update_candidate_status(
     current_user: dict = Depends(get_current_hr_user)
 ):
     db = await get_database()
+    
+    # Update expired job statuses first
+    await update_expired_job_statuses()
     
     # Get candidate and verify job is allocated to this HR
     candidate = await db.recruitment_portal.candidates.find_one({"_id": ObjectId(candidate_id)})
@@ -153,6 +156,9 @@ async def update_candidate_status(
 async def get_all_hr_candidates(current_user: dict = Depends(get_current_hr_user)):
     db = await get_database()
     
+    # Update expired job statuses first
+    await update_expired_job_statuses()
+    
     # Get jobs allocated to this HR
     jobs = await db.recruitment_portal.jobs.find({"assigned_hr": str(current_user["_id"])}).to_list(length=100)
     job_id_list = [job["job_id"] for job in jobs]
@@ -182,12 +188,17 @@ async def get_all_hr_candidates(current_user: dict = Depends(get_current_hr_user
 @router.get("/dashboard")
 async def get_hr_dashboard(current_user: dict = Depends(get_current_hr_user)):
     db = await get_database()
+    
+    # Update expired job statuses first
+    await update_expired_job_statuses()
+    
     # Get job counts
     total_jobs = await db.recruitment_portal.jobs.count_documents({"assigned_hr": str(current_user["_id"])})
     open_jobs = await db.recruitment_portal.jobs.count_documents({"assigned_hr": str(current_user["_id"]), "status": "open"})
     closed_jobs = await db.recruitment_portal.jobs.count_documents({"assigned_hr": str(current_user["_id"]), "status": "closed"})
-    allocated_jobs = await db.recruitment_portal.jobs.count_documents({"assigned_hr": str(current_user["_id"]), "status": "allocated"})
     submitted_jobs = await db.recruitment_portal.jobs.count_documents({"assigned_hr": str(current_user["_id"]), "status": "submit"})
+    demand_closed_jobs = await db.recruitment_portal.jobs.count_documents({"assigned_hr": str(current_user["_id"]), "status": "demand closed"})
+    
     # Get candidate counts using job_id (string)
     jobs = await db.recruitment_portal.jobs.find({"assigned_hr": str(current_user["_id"])}).to_list(length=100)
     job_id_list = [job["job_id"] for job in jobs]
@@ -197,12 +208,13 @@ async def get_hr_dashboard(current_user: dict = Depends(get_current_hr_user)):
     in_progress_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "in_progress"})
     interviewed_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "interviewed"})
     applied_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "applied"})
+    
     return {
         "total_jobs": total_jobs,
         "open_jobs": open_jobs,
         "closed_jobs": closed_jobs,
-        "allocated_jobs": allocated_jobs,
         "submitted_jobs": submitted_jobs,
+        "demand_closed_jobs": demand_closed_jobs,
         "total_candidates": total_candidates,
         "selected_candidates": selected_candidates,
         "rejected_candidates": rejected_candidates,

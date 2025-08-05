@@ -53,6 +53,9 @@ const AdminAddJob = () => {
     description: '',
     location: '',
     ctc: '',
+    csa_id: '',
+    start_date: '',
+    end_date: '',
     assigned_hr: ''
   })
 
@@ -120,6 +123,9 @@ const AdminAddJob = () => {
         description: formData.description,
         location: formData.location,
         salary_package: formData.ctc,
+        csa_id: formData.csa_id,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
         source_company: 'Manual Entry',
         assigned_hr: formData.assigned_hr
       }
@@ -143,6 +149,9 @@ const AdminAddJob = () => {
         description: row.description,
         location: row.location,
         ctc: row.ctc,
+        csa_id: row.csa_id,
+        start_date: row.start_date,
+        end_date: row.end_date,
         assigned_hr: row.assigned_hr || null
       }))
       const response = await api.post('/admin/add-jobs-bulk', jobsData)
@@ -268,7 +277,10 @@ const AdminAddJob = () => {
                   title: { required: true, message: 'Job title is required' },
                   description: { required: true, message: 'Job description is required' },
                   location: { required: true, message: 'Location is required' },
+                  csa_id: { required: true, message: 'CSA ID is required' },
                   ctc: { required: true, message: 'CTC is required' },
+                  start_date: { required: true, message: 'Start date is required' },
+                  end_date: { required: true, message: 'End date is required' },
                   assigned_hr: { required: true, message: 'Please assign to an HR' }
                 })
               }}
@@ -296,6 +308,17 @@ const AdminAddJob = () => {
                   placeholder="e.g., Bangalore"
                 />
                 <ValidatedInput
+                  name="csa_id"
+                  label="CSA ID"
+                  value={manualForm.csa_id}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={errors.csa_id}
+                  touched={touched.csa_id}
+                  placeholder="6 character alphanumeric"
+                  maxLength={6}
+                />
+                <ValidatedInput
                   name="ctc"
                   label="CTC (Cost to Company)"
                   value={manualForm.ctc}
@@ -304,6 +327,26 @@ const AdminAddJob = () => {
                   error={errors.ctc}
                   touched={touched.ctc}
                   placeholder="e.g., 8-12 LPA"
+                />
+                <ValidatedInput
+                  name="start_date"
+                  label="Start Date"
+                  type="date"
+                  value={manualForm.start_date}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={errors.start_date}
+                  touched={touched.start_date}
+                />
+                <ValidatedInput
+                  name="end_date"
+                  label="End Date"
+                  type="date"
+                  value={manualForm.end_date}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={errors.end_date}
+                  touched={touched.end_date}
                 />
                 <ValidatedSelect
                   name="assigned_hr"
