@@ -139,6 +139,10 @@
     @apply bg-slate-100 text-slate-700 border border-slate-200;
   }
 
+  .badge-primary {
+    @apply bg-primary-100 text-primary-700 border border-primary-200;
+  }
+
   /* Loading Spinner */
   .spinner {
     @apply animate-spin rounded-full border-2 border-slate-200 border-t-primary-600;

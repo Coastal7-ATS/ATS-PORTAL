@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 from typing import List, Optional
 import pandas as pd
@@ -155,6 +155,7 @@ async def get_all_jobs(
     start_date_from: Optional[str] = None,
     start_date_to: Optional[str] = None,
     assigned_hr: Optional[str] = None,
+    report_type: Optional[str] = None,
     current_user: dict = Depends(get_current_admin_user)
 ):
     db = await get_database()
@@ -166,18 +167,33 @@ async def get_all_jobs(
     filter_query = {}
     if status:
         filter_query["status"] = status
-    if start_date_from:
-        from_date = datetime.fromisoformat(start_date_from)
-        filter_query["start_date"] = {"$gte": from_date}
-    if start_date_to:
-        to_date = datetime.fromisoformat(start_date_to)
-        to_date = to_date.replace(hour=23, minute=59, second=59, microsecond=999999)
-        if "start_date" in filter_query:
-            filter_query["start_date"]["$lte"] = to_date
-        else:
-            filter_query["start_date"] = {"$lte": to_date}
     if assigned_hr:
         filter_query["assigned_hr"] = assigned_hr
+    
+    # Handle date filtering
+    if report_type:
+        now = datetime.now(timezone.utc)
+        if report_type == "weekly":
+            # Last 7 days
+            start_date = now - timedelta(days=7)
+            filter_query["created_at"] = {
+                "$gte": start_date,
+                "$lte": now
+            }
+        elif report_type == "monthly":
+            # Last 30 days
+            start_date = now - timedelta(days=30)
+            filter_query["created_at"] = {
+                "$gte": start_date,
+                "$lte": now
+            }
+    elif start_date_from:
+        from_date = datetime.fromisoformat(start_date_from)
+        filter_query["start_date"] = {"$gte": from_date}
+    elif start_date_to:
+        to_date = datetime.fromisoformat(start_date_to)
+        to_date = to_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+        filter_query["start_date"] = {"$lte": to_date}
 
     # Get all HR users for name mapping
     hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
@@ -318,27 +334,121 @@ async def update_hr_user(
     
     return {"message": "HR user updated successfully"}
 
+@router.get("/hr-users")
+async def get_hr_users_for_filter(current_user: dict = Depends(get_current_admin_user)):
+    db = await get_database()
+    
+    hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
+    
+    hr_list = []
+    for user in hr_users:
+        hr_list.append({
+            "id": str(user["_id"]),
+            "name": user["name"],
+            "email": user["email"]
+        })
+    
+    return hr_list
+
 @router.get("/dashboard")
-async def get_admin_dashboard(current_user: dict = Depends(get_current_admin_user)):
+async def get_admin_dashboard(
+    report_type: Optional[str] = None,  # "weekly", "monthly", "custom"
+    hr_id: Optional[str] = None,
+    custom_start_date: Optional[str] = None,
+    custom_end_date: Optional[str] = None,
+    current_user: dict = Depends(get_current_admin_user)
+):
     db = await get_database()
     
     # Update expired job statuses first
     await update_expired_job_statuses()
     
-    # Get job counts
-    total_jobs = await db.recruitment_portal.jobs.count_documents({})
-    open_jobs = await db.recruitment_portal.jobs.count_documents({"status": "open"})
-    closed_jobs = await db.recruitment_portal.jobs.count_documents({"status": "closed"})
-    submitted_jobs = await db.recruitment_portal.jobs.count_documents({"status": "submit"})
-    demand_closed_jobs = await db.recruitment_portal.jobs.count_documents({"status": "demand closed"})
+    # Build date filter based on report type
+    date_filter = {}
+    if report_type:
+        
+        now = datetime.now(timezone.utc)
+        
+        if report_type == "weekly":
+            # Last 7 days
+            start_date = now - timedelta(days=7)
+            date_filter = {
+                "created_at": {
+                    "$gte": start_date,
+                    "$lte": now
+                }
+            }
+        elif report_type == "monthly":
+            # Last 30 days
+            start_date = now - timedelta(days=30)
+            date_filter = {
+                "created_at": {
+                    "$gte": start_date,
+                    "$lte": now
+                }
+            }
+        elif report_type == "custom" and custom_start_date and custom_end_date:
+            # Custom date range
+            start_date = datetime.fromisoformat(custom_start_date)
+            end_date = datetime.fromisoformat(custom_end_date)
+            end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            date_filter = {
+                "created_at": {
+                    "$gte": start_date,
+                    "$lte": end_date
+                }
+            }
     
-    # Get candidate counts
-    total_candidates = await db.recruitment_portal.candidates.count_documents({})
-    selected_candidates = await db.recruitment_portal.candidates.count_documents({"status": "selected"})
-    rejected_candidates = await db.recruitment_portal.candidates.count_documents({"status": "rejected"})
+    # Build HR filter
+    hr_filter = {}
+    if hr_id:
+        hr_filter["assigned_hr"] = hr_id
     
-    # Get HR user count
+    # Combine filters
+    job_filter = {**date_filter, **hr_filter}
+    # For candidates, use created_by instead of assigned_hr
+    candidate_filter = {**date_filter}
+    if hr_id:
+        candidate_filter["created_by"] = hr_id
+    
+    # Get job counts with filters
+    total_jobs = await db.recruitment_portal.jobs.count_documents(job_filter)
+    open_jobs = await db.recruitment_portal.jobs.count_documents({**job_filter, "status": "open"})
+    closed_jobs = await db.recruitment_portal.jobs.count_documents({**job_filter, "status": "closed"})
+    submitted_jobs = await db.recruitment_portal.jobs.count_documents({**job_filter, "status": "submitted"})
+    demand_closed_jobs = await db.recruitment_portal.jobs.count_documents({**job_filter, "status": "demand closed"})
+    
+    # Get candidate counts with filters
+    total_candidates = await db.recruitment_portal.candidates.count_documents(candidate_filter)
+    selected_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "selected"})
+    rejected_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "rejected"})
+    
+    # Get HR user count (no filter for this)
     hr_users = await db.recruitment_portal.users.count_documents({"role": "hr"})
+    
+    # Get HR performance data if HR filter is applied
+    hr_performance = None
+    if hr_id:
+        hr_user = await db.recruitment_portal.users.find_one({"_id": ObjectId(hr_id), "role": "hr"})
+        if hr_user:
+            # Get jobs assigned to this HR
+            hr_jobs = await db.recruitment_portal.jobs.find({"assigned_hr": hr_id}).to_list(length=1000)
+            
+            # Get candidates created by this HR
+            hr_candidates = await db.recruitment_portal.candidates.find({"created_by": hr_id}).to_list(length=1000)
+            
+            hr_performance = {
+                "hr_name": hr_user["name"],
+                "hr_email": hr_user["email"],
+                "total_assigned_jobs": len(hr_jobs),
+                "open_jobs": len([j for j in hr_jobs if j["status"] == "open"]),
+                "closed_jobs": len([j for j in hr_jobs if j["status"] == "closed"]),
+                "submitted_jobs": len([j for j in hr_jobs if j["status"] == "submitted"]),
+                "demand_closed_jobs": len([j for j in hr_jobs if j["status"] == "demand closed"]),
+                "total_candidates": len(hr_candidates),
+                "selected_candidates": len([c for c in hr_candidates if c["status"] == "selected"]),
+                "rejected_candidates": len([c for c in hr_candidates if c["status"] == "rejected"])
+            }
     
     return {
         "total_jobs": total_jobs,
@@ -349,7 +459,14 @@ async def get_admin_dashboard(current_user: dict = Depends(get_current_admin_use
         "total_candidates": total_candidates,
         "selected_candidates": selected_candidates,
         "rejected_candidates": rejected_candidates,
-        "hr_users": hr_users
+        "hr_users": hr_users,
+        "hr_performance": hr_performance,
+        "filters_applied": {
+            "report_type": report_type,
+            "hr_id": hr_id,
+            "custom_start_date": custom_start_date,
+            "custom_end_date": custom_end_date
+        }
     }
 
 @router.get("/candidates")
@@ -394,3 +511,28 @@ async def get_all_candidates(current_user: dict = Depends(get_current_admin_user
             candidate["created_by_hr"] = "Unknown HR"
     
     return candidates 
+
+@router.get("/hr-contribution")
+async def get_hr_contribution(current_user: dict = Depends(get_current_admin_user)):
+    db = await get_database()
+    
+    # Get all HR users
+    hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
+    
+    # Get submitted jobs count for each HR
+    hr_contribution = []
+    for hr_user in hr_users:
+        hr_id = str(hr_user["_id"])
+        submitted_jobs_count = await db.recruitment_portal.jobs.count_documents({
+            "assigned_hr": hr_id,
+            "status": "submitted"
+        })
+        
+        hr_contribution.append({
+            "hr_id": hr_id,
+            "hr_name": hr_user["name"],
+            "hr_email": hr_user["email"],
+            "submitted_jobs_count": submitted_jobs_count
+        })
+    
+    return hr_contribution 

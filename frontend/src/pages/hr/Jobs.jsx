@@ -286,10 +286,10 @@ const HRJobs = () => {
                 className="select-field"
               >
                 <option value="">All Status</option>
-                <option value="open">Open</option>
-                <option value="closed">Closed</option>
-                <option value="submitted">Submitted</option>
-                <option value="demand closed">Demand Closed</option>
+                                    <option value="open">Open</option>
+                    <option value="closed">Closed</option>
+                    <option value="submitted">Submitted</option>
+                    <option value="demand closed">Demand Closed</option>
               </select>
             </div>
 

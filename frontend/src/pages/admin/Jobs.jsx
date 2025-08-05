@@ -6,7 +6,7 @@ import { toast } from 'react-toastify'
 import api from '../../services/api'
 
 // Only allow these values for status and assigned_hr
-const ALLOWED_STATUSES = ['open', 'allocated', 'closed', 'submit', '']
+const ALLOWED_STATUSES = ['open', 'allocated', 'closed', 'submitted', '']
 const cardVariants = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
