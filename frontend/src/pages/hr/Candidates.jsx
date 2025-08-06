@@ -216,19 +216,21 @@ const HRCandidates = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'selected':
-        return 'bg-green-100 text-green-800';
+        return 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300';
       case 'rejected':
-        return 'bg-red-100 text-red-800';
+        return 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300';
       case 'interviewed':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300';
       case 'in_progress':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 border border-orange-300';
       case 'applied':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300';
+      case 'submitted':
+        return 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300';
     }
   };
 
@@ -408,8 +410,7 @@ const HRCandidates = () => {
             ['Percentage', formatValue(candidate.education_degree_percentage)],
             ['Start Date', formatValue(candidate.education_degree_start_date)],
             ['End Date', formatValue(candidate.education_degree_end_date)],
-            ['Duration', formatValue(candidate.education_degree_duration)],
-            ['Additional Certifications', formatValue(candidate.education_additional_certifications)]
+            
           ]
         ),
         new Paragraph({ text: '' }), // Spacing
@@ -621,8 +622,7 @@ const HRCandidates = () => {
         'Availability for Interview': 'availability_interview',
         'General Attitude Comments': 'general_attitude_comments',
         'Oral Communication Comments': 'oral_communication_comments',
-        'Additional Certifications': 'education_additional_certifications',
-        'Duration': 'education_degree_duration',
+        
         'Current CTC': 'current_ctc',
         'Expected CTC': 'expected_ctc',
       };
@@ -641,7 +641,7 @@ const HRCandidates = () => {
                   [fieldName]: e.target.value,
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select...</option>
               {options.map((option) => (
@@ -666,7 +666,7 @@ const HRCandidates = () => {
                 [fieldName]: e.target.value,
               })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       );
@@ -674,9 +674,9 @@ const HRCandidates = () => {
     return (
       <div className="mb-2">
         <span className="font-medium text-gray-700">{label}:</span>
-        <span className="ml-2 text-gray-900">
+        <span className="ml-2 text-gray-900 break-words">
           {isLink && value ? (
-            <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+            <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:no-underline">
               {value}
             </a>
           ) : (
@@ -693,7 +693,7 @@ const HRCandidates = () => {
         <div className="space-y-4">
           <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">Education Details</h4>
           {/* Class X */}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-4">
             <h5 className="font-medium text-gray-700 mb-3">Class X</h5>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -702,7 +702,7 @@ const HRCandidates = () => {
                   type="text"
                   value={editForm.education_x_institute || ''}
                   onChange={(e) => setEditForm({ ...editForm, education_x_institute: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -711,7 +711,7 @@ const HRCandidates = () => {
                   type="text"
                   value={editForm.education_x_percentage || ''}
                   onChange={(e) => setEditForm({ ...editForm, education_x_percentage: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -725,7 +725,7 @@ const HRCandidates = () => {
                   dateFormat="MM/yyyy"
                   showMonthYearPicker
                   placeholderText="MM/YYYY"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -739,13 +739,13 @@ const HRCandidates = () => {
                   dateFormat="MM/yyyy"
                   showMonthYearPicker
                   placeholderText="MM/YYYY"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
           </div>
           {/* Class XII */}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-4">
             <h5 className="font-medium text-gray-700 mb-3">Class XII</h5>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -754,7 +754,7 @@ const HRCandidates = () => {
                   type="text"
                   value={editForm.education_xii_institute || ''}
                   onChange={(e) => setEditForm({ ...editForm, education_xii_institute: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -763,7 +763,7 @@ const HRCandidates = () => {
                   type="text"
                   value={editForm.education_xii_percentage || ''}
                   onChange={(e) => setEditForm({ ...editForm, education_xii_percentage: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -777,7 +777,7 @@ const HRCandidates = () => {
                   dateFormat="MM/yyyy"
                   showMonthYearPicker
                   placeholderText="MM/YYYY"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -791,13 +791,13 @@ const HRCandidates = () => {
                   dateFormat="MM/yyyy"
                   showMonthYearPicker
                   placeholderText="MM/YYYY"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
           </div>
           {/* Degree */}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-gray-50 p-4">
             <h5 className="font-medium text-gray-700 mb-3">Degree</h5>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -806,7 +806,7 @@ const HRCandidates = () => {
                   type="text"
                   value={editForm.education_degree_name || ''}
                   onChange={(e) => setEditForm({ ...editForm, education_degree_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -815,7 +815,7 @@ const HRCandidates = () => {
                   type="text"
                   value={editForm.education_degree_institute || ''}
                   onChange={(e) => setEditForm({ ...editForm, education_degree_institute: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -824,7 +824,7 @@ const HRCandidates = () => {
                   type="text"
                   value={editForm.education_degree_percentage || ''}
                   onChange={(e) => setEditForm({ ...editForm, education_degree_percentage: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -838,7 +838,7 @@ const HRCandidates = () => {
                   dateFormat="MM/yyyy"
                   showMonthYearPicker
                   placeholderText="MM/YYYY"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -852,27 +852,10 @@ const HRCandidates = () => {
                   dateFormat="MM/yyyy"
                   showMonthYearPicker
                   placeholderText="MM/YYYY"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                <input
-                  type="text"
-                  value={editForm.education_degree_duration || ''}
-                  onChange={(e) => setEditForm({ ...editForm, education_degree_duration: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Certifications</label>
-                <input
-                  type="text"
-                  value={editForm.education_additional_certifications || ''}
-                  onChange={(e) => setEditForm({ ...editForm, education_additional_certifications: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              
             </div>
           </div>
         </div>
@@ -883,7 +866,7 @@ const HRCandidates = () => {
       <div className="space-y-4">
         <h4 className="font-semibold text-lg text-gray-800 border-b pb-2">Education Details</h4>
         {/* Class X */}
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-gray-50 p-4">
           <h5 className="font-medium text-gray-700 mb-2">Class X</h5>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -901,7 +884,7 @@ const HRCandidates = () => {
           </div>
         </div>
         {/* Class XII */}
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-gray-50 p-4">
           <h5 className="font-medium text-gray-700 mb-2">Class XII</h5>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -919,7 +902,7 @@ const HRCandidates = () => {
           </div>
         </div>
         {/* Degree */}
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-gray-50 p-4">
           <h5 className="font-medium text-gray-700 mb-2">Degree</h5>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -946,7 +929,7 @@ const HRCandidates = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -957,93 +940,143 @@ const HRCandidates = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
+        className="flex items-center justify-between"
       >
-        <h1 className="text-3xl font-bold text-gray-900">My Candidates</h1>
-        <p className="text-gray-600">All candidates you have created</p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Candidates</h1>
+          <p className="text-gray-600 text-lg">Manage and track your candidate applications</p>
+        </div>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="card"
+        className="bg-white/90 backdrop-blur-sm shadow-soft border border-white/40 rounded-xl"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Candidates</h3>
-          <span className="text-sm text-gray-500">{candidates.length} candidates found</span>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">Candidates</h3>
+            <p className="text-sm text-gray-500 mt-1">Manage your candidate applications</p>
+          </div>
+          <div className="flex items-center gap-2 text-blue-600">
+            <UserCheck className="h-5 w-5" />
+            <span className="text-sm font-medium">Active Candidates</span>
+          </div>
         </div>
+        
         {candidates.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-12">
+            <UserCheck className="mx-auto h-12 w-12 text-gray-300 mb-4" />
             <p className="text-gray-500">No candidates found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Applied For</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Current CTC</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Expected CTC</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Experience</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Education</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Skills</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Projects</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">LinkedIn</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">GitHub</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Candidate Details</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Position</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Experience</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Education</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Skills</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {candidates.map((candidate) => (
-                  <tr key={candidate.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.name}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.email}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.phone}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.applied_for || 'N/A'}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.current_ctc || 'N/A'}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.expected_ctc || 'N/A'}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.experience}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.education}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.skills}</td>
-                    <td className="px-4 py-2 text-sm text-gray-900">{candidate.projects}</td>
-                    <td className="px-4 py-2 text-sm text-blue-600">
-                      {candidate.linkedin && (
-                        <a href={candidate.linkedin} target="_blank" rel="noopener noreferrer">
-                          LinkedIn
-                        </a>
-                      )}
+                  <tr key={candidate.id} className="hover:bg-gray-50 transition-colors duration-200">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-xs" title={candidate.name}>
+                          {candidate.name}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate max-w-xs" title={candidate.email}>
+                          {candidate.email}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-2 text-sm text-blue-600">
-                      {candidate.github && (
-                        <a href={candidate.github} target="_blank" rel="noopener noreferrer">
-                          GitHub
-                        </a>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm text-gray-900 truncate max-w-xs" title={candidate.phone}>
+                          {candidate.phone || 'N/A'}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {candidate.linkedin && (
+                            <a 
+                              href={candidate.linkedin.startsWith('http') ? candidate.linkedin : `https://${candidate.linkedin}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-600 hover:text-blue-800 text-xs hover:underline"
+                            >
+                              LinkedIn
+                            </a>
+                          )}
+                          {candidate.github && (
+                            <a 
+                              href={candidate.github.startsWith('http') ? candidate.github : `https://${candidate.github}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-gray-600 hover:text-gray-800 text-xs hover:underline"
+                            >
+                              GitHub
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-2 text-sm">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-xs" title={candidate.applied_for || candidate.role_applied_for || 'N/A'}>
+                          {candidate.applied_for || candidate.role_applied_for || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {candidate.current_location || 'Location not specified'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm text-gray-900">
+                          {candidate.total_experience || candidate.experience || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          CTC: {candidate.current_ctc || 'N/A'} → {candidate.expected_ctc || 'N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 truncate max-w-xs" title={candidate.education}>
+                        {candidate.education || candidate.education_degree_name || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 truncate max-w-xs" title={candidate.skills}>
+                        {candidate.skills || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                        className={`inline-flex px-3 py-1.5 text-xs font-semibold ${getStatusColor(
                           candidate.status
                         )}`}
                       >
                         {candidate.status}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-sm">
-                      <div className="flex space-x-2">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
                             setSelectedCandidate(candidate);
                             setShowViewModal(true);
                           }}
-                          className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                          className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 transition-colors duration-200"
                           title="View Details"
                         >
-                          <Eye className="h-4 w-4" /> 
+                          <Eye className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => {
@@ -1051,17 +1084,17 @@ const HRCandidates = () => {
                             setStatusForm({ status: candidate.status, notes: candidate.notes || '' });
                             setShowStatusModal(true);
                           }}
-                          className="text-green-600 hover:text-green-900 flex items-center gap-1"
+                          className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 transition-colors duration-200"
                           title="Edit Status"
                         >
-                          <Edit className="h-4 w-4" /> 
+                          <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => exportCandidateToDoc(candidate)}
-                          className="text-info-600 hover:text-info-700 flex items-center gap-1"
+                          className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 transition-colors duration-200"
                           title="Export Details"
                         >
-                          <Download className="h-4 w-4" /> 
+                          <Download className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -1076,10 +1109,10 @@ const HRCandidates = () => {
       {/* Enhanced View Candidate Modal */}
       {showViewModal && selectedCandidate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-gray-900 truncate">
                   Candidate Details - {selectedCandidate.name}
                 </h3>
                 <div className="flex space-x-2">
@@ -1087,14 +1120,14 @@ const HRCandidates = () => {
                     <>
                       <button
                         onClick={() => exportCandidateToDoc(selectedCandidate)}
-                        className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                        className="flex items-center gap-1 px-3 py-2 bg-green-600 text-white hover:bg-green-700 transition"
                         title="Export Details"
                       >
                         <Download className="h-4 w-4" /> Export
                       </button>
                       <button
                         onClick={startEditing}
-                        className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700"
                       >
                         <Edit className="h-4 w-4" /> Edit
                       </button>
@@ -1104,7 +1137,7 @@ const HRCandidates = () => {
                     <>
                       <button
                         onClick={handleEditCandidate}
-                        className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700"
                       >
                         <Save className="h-4 w-4" /> Save
                       </button>
@@ -1117,7 +1150,7 @@ const HRCandidates = () => {
                       setIsEditing(false);
                       setEditForm({});
                     }}
-                    className="text-gray-500 hover:text-gray-700 bg-gray-100 border border-gray-300 rounded-md px-2 py-1"
+                    className="text-gray-500 hover:text-gray-700 bg-gray-100 border border-gray-300 px-2 py-1"
                   >
                     ✕
                   </button>
@@ -1127,11 +1160,11 @@ const HRCandidates = () => {
 
             <div className="p-6 space-y-6">
               {/* Personal Information */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 p-6 rounded-xl">
                 <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">
                   Personal Information
                 </h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {renderField('Name', selectedCandidate.name)}
                   {renderField('Title/Position', selectedCandidate.title_position || selectedCandidate.job_title)}
                   {renderField('Email', selectedCandidate.email)}
@@ -1149,7 +1182,7 @@ const HRCandidates = () => {
               </div>
 
               {/* General Information */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 p-6 rounded-xl">
                 <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">
                   General Information
                 </h4>
@@ -1204,7 +1237,7 @@ const HRCandidates = () => {
               </div>
 
               {/* Experience Information */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 p-6 rounded-xl">
                 <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">
                   Experience Information
                 </h4>
@@ -1218,7 +1251,7 @@ const HRCandidates = () => {
               {renderEducationSection()}
 
               {/* Assessment Information */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 p-6 rounded-xl">
                 <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">
                   Assessment Information
                 </h4>
@@ -1241,7 +1274,7 @@ const HRCandidates = () => {
                               general_attitude_assessment: e.target.value ? parseInt(e.target.value) : null,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">Select Score</option>
                           <option value="1">1 - Below Average</option>
@@ -1266,7 +1299,7 @@ const HRCandidates = () => {
                               oral_communication_assessment: e.target.value ? parseInt(e.target.value) : null,
                             })
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">Select Score</option>
                           <option value="1">1 - Below Average</option>
@@ -1308,7 +1341,7 @@ const HRCandidates = () => {
               </div>
 
               {/* SME Information */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 p-6 rounded-xl">
                 <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">SME Information</h4>
                 <div className="grid grid-cols-2 gap-4">
                   {renderField('SME Name', selectedCandidate.sme_name)}
@@ -1318,7 +1351,7 @@ const HRCandidates = () => {
               </div>
 
               {/* SME Declaration */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 p-6 rounded-xl">
                 <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">SME Declaration</h4>
                 <div className="grid grid-cols-2 gap-4">
                   {renderField('Do Not Know Candidate', selectedCandidate.do_not_know_candidate)}
@@ -1329,7 +1362,7 @@ const HRCandidates = () => {
               </div>
 
               {/* Verification */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 p-6 rounded-xl">
                 <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Verification</h4>
                 <div className="grid grid-cols-2 gap-4">
                   {renderField('Salary Slip Verified', selectedCandidate.salary_slip_verified, false, 'dropdown', [
@@ -1355,11 +1388,11 @@ const HRCandidates = () => {
 
               {/* Skills Assessment */}
               {selectedCandidate.skill_assessments && selectedCandidate.skill_assessments.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="bg-white border border-gray-200 p-6 rounded-xl">
                   <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Skills Assessment</h4>
                   <div className="space-y-4">
                     {selectedCandidate.skill_assessments.map((skill, index) => (
-                      <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                      <div key={index} className="bg-gray-50 p-4">
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="font-medium">Skill Name:</span> {skill.skill_name || 'Not provided'}
@@ -1382,11 +1415,11 @@ const HRCandidates = () => {
 
               {/* Work Experience */}
               {selectedCandidate.work_experience_entries && selectedCandidate.work_experience_entries.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="bg-white border border-gray-200 p-6 rounded-xl">
                   <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Work Experience</h4>
                   <div className="space-y-4">
                     {selectedCandidate.work_experience_entries.map((exp, index) => (
-                      <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                      <div key={index} className="bg-gray-50 p-4">
                         <h5 className="font-medium text-gray-700 mb-3">Organization {index + 1}</h5>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
@@ -1433,7 +1466,7 @@ const HRCandidates = () => {
               )}
 
               {/* Additional Information */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 p-6">
                 <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Additional Information</h4>
                 <div className="grid grid-cols-2 gap-4">
                   {renderField('Skills', selectedCandidate.skills)}
@@ -1450,13 +1483,13 @@ const HRCandidates = () => {
               </div>
 
               {/* Application Status */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className="bg-white border border-gray-200 p-6">
                 <h4 className="font-semibold text-lg text-gray-800 border-b pb-2 mb-4">Application Status</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="mb-2">
                     <span className="font-medium text-gray-700">Status:</span>
                     <span
-                      className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                      className={`ml-2 px-2 py-1 text-xs font-medium ${getStatusColor(
                         selectedCandidate.status
                       )}`}
                     >
@@ -1487,7 +1520,7 @@ const HRCandidates = () => {
       {/* Update Status Modal */}
       {showStatusModal && selectedCandidate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white p-6 w-full max-w-md rounded-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">
                 Update Status for {selectedCandidate.name}
@@ -1505,7 +1538,7 @@ const HRCandidates = () => {
                 <select
                   value={statusForm.status}
                   onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })}
-                  className="input-field"
+                  className="w-full px-4 py-3 text-sm bg-white/90 backdrop-blur-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer rounded-xl"
                 >
                   <option value="applied">Applied</option>
                   <option value="in_progress">In Progress</option>
@@ -1519,16 +1552,16 @@ const HRCandidates = () => {
                 <textarea
                   value={statusForm.notes}
                   onChange={(e) => setStatusForm({ ...statusForm, notes: e.target.value })}
-                  className="input-field"
+                  className="w-full px-4 py-3 text-sm bg-white/90 backdrop-blur-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 rounded-xl"
                   rows="3"
                   placeholder="Add notes about the candidate..."
                 />
               </div>
               <div className="flex justify-end space-x-3 mt-6">
-                <button onClick={() => setShowStatusModal(false)} className="btn-secondary">
+                <button onClick={() => setShowStatusModal(false)} className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-slate-700 bg-white hover:bg-pastel-blue border border-slate-200 hover:border-primary-200 shadow-soft hover:shadow-medium transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 rounded-xl">
                   Cancel
                 </button>
-                <button onClick={handleStatusUpdate} className="btn-primary">
+                <button onClick={handleStatusUpdate} className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-soft hover:shadow-medium transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none rounded-xl">
                   Update Status
                 </button>
               </div>

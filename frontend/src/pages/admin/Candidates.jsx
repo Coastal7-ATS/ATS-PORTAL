@@ -7,14 +7,14 @@ import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, Ali
 
 // Animation variants for modals and cards
 const modalVariants = {
-  hidden: { opacity: 0, y: 40, scale: 0.98 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 200, damping: 20 } },
-  exit: { opacity: 0, y: 40, scale: 0.98, transition: { duration: 0.2 } }
+  hidden: { opacity: 0, y: 20, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } },
+  exit: { opacity: 0, y: 20, scale: 0.98, transition: { duration: 0.15 } }
 }
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
 }
 
 const AdminCandidates = () => {
@@ -197,6 +197,25 @@ const AdminCandidates = () => {
     }
   }
 
+  const getAdminStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'selected':
+        return 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300 rounded-full'
+      case 'rejected':
+        return 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300 rounded-full'
+      case 'interviewed':
+        return 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300 rounded-full'
+      case 'in_progress':
+        return 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 border border-orange-300 rounded-full'
+      case 'applied':
+        return 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300 rounded-full'
+      case 'submitted':
+        return 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300 rounded-full'
+      default:
+        return 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300 rounded-full'
+    }
+  }
+
   const getAssessmentScoreText = (score) => {
     switch (score) {
       case '1':
@@ -257,8 +276,7 @@ const AdminCandidates = () => {
       'Availability for Interview': 'availability_interview',
       'General Attitude Comments': 'general_attitude_comments',
       'Oral Communication Comments': 'oral_communication_comments',
-      'Additional Certifications': 'education_additional_certifications',
-      'Duration': 'education_degree_duration'
+      
     }
     const fieldName = fieldNameMap[label] || label.toLowerCase().replace(/\s+/g, '_')
 
@@ -310,7 +328,7 @@ const AdminCandidates = () => {
         <span className="font-medium text-gray-700">{label}:</span>
         <span className="ml-2 text-gray-900">
           {isLink && value ? (
-            <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{value}</a>
+            <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{value}</a>
           ) : (value || 'Not provided')}
         </span>
       </div>
@@ -456,24 +474,7 @@ const AdminCandidates = () => {
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white transition"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                <input
-                  type="text"
-                  value={editForm.education_degree_duration || ''}
-                  onChange={(e) => setEditForm({ ...editForm, education_degree_duration: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white transition"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Certifications</label>
-                <input
-                  type="text"
-                  value={editForm.education_additional_certifications || ''}
-                  onChange={(e) => setEditForm({ ...editForm, education_additional_certifications: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white transition"
-                />
-              </div>
+              
             </div>
           </div>
         </div>
@@ -754,8 +755,7 @@ const AdminCandidates = () => {
             ['Percentage', formatValue(candidate.education_degree_percentage)],
             ['Start Date', formatValue(candidate.education_degree_start_date)],
             ['End Date', formatValue(candidate.education_degree_end_date)],
-            ['Duration', formatValue(candidate.education_degree_duration)],
-            ['Additional Certifications', formatValue(candidate.education_additional_certifications)]
+           
           ]
         ),
         new Paragraph({ text: '' }), // Spacing
@@ -932,190 +932,275 @@ const AdminCandidates = () => {
 
   return (
     <div className="space-y-8 px-2 md:px-8 py-6 bg-white-50 min-h-screen">
+      {/* Header Section */}
       <motion.div
         variants={cardVariants}
         initial="hidden"
         animate="visible"
-        className="mb-2"
+        className="flex items-center justify-between"
       >
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">All Candidates</h1>
-        <p className="text-gray-600">View all candidate applications</p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">All Candidates</h1>
+          <p className="text-gray-600 text-lg">View and manage all candidate applications</p>
+        </div>
       </motion.div>
 
+      {/* Search and Filter Section */}
       <motion.div
         variants={cardVariants}
         initial="hidden"
         animate="visible"
-        className="bg-white rounded-2xl border border-gray-200 shadow-md p-6 transition-all"
+        className="bg-white/30 backdrop-blur-sm rounded-xl border border-white/20 p-4"
       >
-        {/* Search and Filter Controls */}
-        <div className="space-y-4 mb-6">
-          {/* Search Row */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="text-lg font-semibold text-slate-900">Search & Filters</h3>
+        </div>
+        
+        <div className="space-y-4">
+          {/* Search and Filter Row */}
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            {/* Search Input */}
+            <div className="relative md:col-span-2">
               <input
                 type="text"
                 placeholder="Search candidates..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white transition"
+                className="input-field"
               />
             </div>
-            <button
-              onClick={handleApplySearch}
-              className="btn-primary px-6"
-            >
-              Search
-            </button>
+
+            {/* Applied For Filter */}
+            <div>
+              <select
+                value={filterAppliedFor}
+                onChange={e => setFilterAppliedFor(e.target.value)}
+                className="select-field"
+              >
+                <option value="">All Applied For</option>
+                {appliedForOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="select-field"
+              >
+                <option value="">All Status</option>
+                {statusOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* HR Filter */}
+            <div>
+              <select
+                value={filterHR}
+                onChange={e => setFilterHR(e.target.value)}
+                className="select-field"
+              >
+                <option value="">All HR Users</option>
+                {hrOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleApplySearch}
+                className="btn-primary px-4"
+              >
+                Search
+              </button>
+              <button
+                onClick={handleApplyFilters}
+                className="btn-secondary px-4"
+              >
+                Apply
+              </button>
+              <button
+                onClick={handleClearAll}
+                className="btn-ghost px-4"
+              >
+                Clear
+              </button>
+            </div>
           </div>
-          
-          {/* Filter Row */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <select
-              value={filterAppliedFor}
-              onChange={e => setFilterAppliedFor(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white transition"
-            >
-              <option value="">All Applied For</option>
-              {appliedForOptions.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white transition"
-            >
-              <option value="">All Status</option>
-              {statusOptions.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            <select
-              value={filterHR}
-              onChange={e => setFilterHR(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white transition"
-            >
-              <option value="">All HR Users</option>
-              {hrOptions.map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            <button
-              onClick={handleApplyFilters}
-              className="btn-secondary px-6"
-            >
-              Apply Filters
-            </button>
-            <button
-              onClick={handleClearAll}
-              className="btn-ghost px-6"
-            >
-              Clear All
-            </button>
-          </div>
-          
+
+          {/* Active Filters */}
           {(appliedFilterAppliedFor || appliedFilterStatus || appliedFilterHR || appliedSearchTerm) && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-gray-500">Active filters:</span>
               {appliedSearchTerm && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">Search: {appliedSearchTerm}</span>
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Search: {appliedSearchTerm}</span>
               )}
               {appliedFilterAppliedFor && (
-                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Applied For: {appliedFilterAppliedFor}</span>
+                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Applied For: {appliedFilterAppliedFor}</span>
               )}
               {appliedFilterStatus && (
-                <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">Status: {appliedFilterStatus}</span>
+                <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">Status: {appliedFilterStatus}</span>
               )}
               {appliedFilterHR && (
-                <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded">HR: {appliedFilterHR}</span>
+                <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">HR: {appliedFilterHR}</span>
               )}
             </div>
           )}
         </div>
-        
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-gray-500">{filteredCandidates.length} candidates found</span>
+      </motion.div>
+
+      {/* Candidates Table */}
+      <motion.div
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        className="bg-white/90 backdrop-blur-sm shadow-soft border border-white/40 rounded-xl"
+      >
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">All Candidates</h3>
+            <p className="text-sm text-gray-500 mt-1">Manage all candidate applications</p>
+          </div>
+          <div className="flex items-center gap-2 text-blue-600">
+            <span className="text-sm font-medium">{filteredCandidates.length} candidates found</span>
+          </div>
         </div>
         {filteredCandidates.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-12">
             <p className="text-gray-500">No candidates found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="table-modern">
-              <thead>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Applied For</th>
-                  <th>Added By HR</th>
-                  <th>Current CTC</th>
-                  <th>Expected CTC</th>
-                  <th>Experience</th>
-                  <th>Education</th>
-                  <th>Skills</th>
-                  <th>Projects</th>
-                  <th>LinkedIn</th>
-                  <th>GitHub</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Candidate Details</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Position</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Experience & CTC</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Skills & Education</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">HR & Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredCandidates.map((candidate) => (
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredCandidates.map((candidate, index) => (
                   <motion.tr
                     key={candidate.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.2, delay: 0.02 * index }}
+                    className="hover:bg-gray-50 transition-colors duration-200"
                   >
-                    <td className="font-medium text-slate-900">{candidate.name}</td>
-                    <td className="text-slate-900">{candidate.email}</td>
-                    <td className="text-slate-900">{candidate.phone}</td>
-                    <td className="text-slate-900">{candidate.applied_for || candidate.role_applied_for || 'N/A'}</td>
-                    <td className="text-slate-900 font-medium text-blue-600">{candidate.created_by_hr || 'Unknown HR'}</td>
-                    <td className="text-slate-900">{candidate.current_ctc || 'N/A'}</td>
-                    <td className="text-slate-900">{candidate.expected_ctc || 'N/A'}</td>
-                    <td className="text-slate-900">{candidate.experience}</td>
-                    <td className="text-slate-900">{candidate.education}</td>
-                    <td className="text-slate-900">{candidate.skills}</td>
-                    <td className="text-slate-900">{candidate.projects}</td>
-                    <td>
-                      {candidate.linkedin && (
-                        <a href={candidate.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700 underline">LinkedIn</a>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-xs" title={candidate.name}>
+                          {candidate.name}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate max-w-xs" title={candidate.email}>
+                          {candidate.email}
+                        </div>
+                      </div>
                     </td>
-                    <td>
-                      {candidate.github && (
-                        <a href={candidate.github} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-700 underline">GitHub</a>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm text-gray-900 truncate max-w-xs" title={candidate.phone}>
+                          {candidate.phone || 'N/A'}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {candidate.linkedin && (
+                            <a 
+                              href={candidate.linkedin.startsWith('http') ? candidate.linkedin : `https://${candidate.linkedin}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-600 hover:text-blue-800 text-xs hover:underline"
+                            >
+                              LinkedIn
+                            </a>
+                          )}
+                          {candidate.github && (
+                            <a 
+                              href={candidate.github.startsWith('http') ? candidate.github : `https://${candidate.github}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-gray-600 hover:text-gray-800 text-xs hover:underline"
+                            >
+                              GitHub
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </td>
-                    <td>
-                      <span className={`badge ${getStatusColor(candidate.status)}`}>
-                        {candidate.status}
-                      </span>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-xs" title={candidate.applied_for || candidate.role_applied_for || 'N/A'}>
+                          {candidate.applied_for || candidate.role_applied_for || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Projects: {candidate.projects || 'N/A'}
+                        </div>
+                      </div>
                     </td>
-                    <td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm text-gray-900">
+                          {candidate.experience || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          CTC: {candidate.current_ctc || 'N/A'} → {candidate.expected_ctc || 'N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm text-gray-900 truncate max-w-xs" title={candidate.skills}>
+                          {candidate.skills || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate max-w-xs" title={candidate.education}>
+                          {candidate.education || 'N/A'}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium text-blue-600">
+                          {candidate.created_by_hr || 'Unknown HR'}
+                        </div>
+                        <span
+                          className={`inline-flex px-3 py-1.5 text-xs font-semibold mt-1 ${getAdminStatusColor(
+                            candidate.status
+                          )}`}
+                        >
+                          {candidate.status}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => { setSelectedCandidate(candidate); setShowViewModal(true) }}
-                          className="p-2 rounded-lg text-primary-600 hover:bg-primary-50 hover:text-primary-700 transition-colors duration-200"
+                          className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => { setSelectedCandidate(candidate); setStatusForm({ status: candidate.status, notes: candidate.notes || '' }); setShowStatusModal(true) }}
-                          className="p-2 rounded-lg text-success-600 hover:bg-success-50 hover:text-success-700 transition-colors duration-200"
+                          className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded transition-colors duration-200"
                           title="Edit Status"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => exportCandidateToDoc(candidate)}
-                          className="p-2 rounded-lg text-info-600 hover:bg-info-50 hover:text-info-700 transition-colors duration-200"
+                          className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 rounded transition-colors duration-200"
                           title="Export Details"
                         >
                           <Download className="h-4 w-4" />
@@ -1141,7 +1226,7 @@ const AdminCandidates = () => {
             exit="exit"
           >
             <motion.div
-              className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200"
+              className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200"
               initial={{ scale: 0.98, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.98, opacity: 0 }}
@@ -1592,7 +1677,7 @@ const AdminCandidates = () => {
             exit="exit"
           >
             <motion.div
-              className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-200"
+              className="bg-white rounded-xl p-8 w-full max-w-md shadow-2xl border border-gray-200"
               initial={{ scale: 0.98, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.98, opacity: 0 }}

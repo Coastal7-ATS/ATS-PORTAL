@@ -51,117 +51,108 @@ const Login = () => {
     visible: {
       opacity: 1,
       transition: {
-        duration: 0.8,
+        duration: 0.4,
         staggerChildren: 0.1
       }
     }
   }
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
+    hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
+        duration: 0.3,
         ease: "easeOut"
       }
     }
   }
 
   const formVariants = {
-    hidden: { opacity: 0, scale: 0.95, y: 20 },
+    hidden: { opacity: 0, scale: 0.98, y: 10 },
     visible: {
       opacity: 1,
       scale: 1,
       y: 0,
       transition: {
-        duration: 0.6,
+        duration: 0.3,
         ease: "easeOut"
       }
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-pastel-blue via-pastel-cyan to-pastel-indigo flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary-200/20 to-indigo-200/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-indigo-200/10 to-primary-200/10 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-primary-200/20 to-info-200/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-pastel-cyan/20 to-pastel-purple/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-pastel-indigo/10 to-primary-200/10 rounded-full blur-3xl"></div>
       </div>
 
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md relative z-10 max-h-screen overflow-y-auto"
       >
         {/* Logo Section */}
         <motion.div
           variants={itemVariants}
-          className="text-center mb-8"
+          className="text-center mb-6"
         >
           <motion.div
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.3 }}
-            className="mx-auto w-32 h-32 bg-white/80 backdrop-blur-md rounded-3xl shadow-large border border-white/40 flex items-center justify-center mb-6"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+            className="mx-auto w-24 h-24 bg-white/90 backdrop-blur-md rounded-2xl shadow-large border border-white/50 flex items-center justify-center mb-4"
           >
             <img
               src="/Coastal_Seven_Consulting_color.png"
               alt="Coastal Seven Consulting Logo"
-              className="w-24 h-24 object-contain"
+              className="w-20 h-20 object-contain"
             />
           </motion.div>
           
           <motion.h1 
             variants={itemVariants}
-            className="text-4xl font-bold gradient-text mb-2"
+            className="text-3xl font-bold gradient-text mb-2"
           >
             Welcome Back
           </motion.h1>
           
           <motion.p 
             variants={itemVariants}
-            className="text-slate-600 text-lg"
+            className="text-slate-600 text-base"
           >
-            {isLogin ? 'Sign in to your account' : 'Create your account'}
+            {isLogin ? '' : 'Create your account'}
           </motion.p>
         </motion.div>
 
         {/* Form Card */}
         <motion.div
           variants={formVariants}
-          className="card-glass p-8"
+          className="card-glass p-6"
         >
           {/* Toggle Buttons */}
           <motion.div 
             variants={itemVariants}
-            className="flex bg-slate-100/50 rounded-2xl p-1 mb-8"
+            className="flex bg-pastel-blue/50 rounded-2xl p-1 mb-6"
           >
             <button
               onClick={() => setIsLogin(true)}
-              className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 isLogin 
                   ? 'bg-white text-primary-700 shadow-soft' 
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Sign In
+              Sign in to your account
             </button>
-            <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                !isLogin 
-                  ? 'bg-white text-primary-700 shadow-soft' 
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Sign Up
-            </button>
+            
           </motion.div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Field (only for registration) */}
             <AnimatePresence>
               {!isLogin && (
@@ -169,7 +160,7 @@ const Login = () => {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Full Name
@@ -242,7 +233,7 @@ const Login = () => {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.2 }}
                 >
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Role
@@ -268,7 +259,7 @@ const Login = () => {
               variants={itemVariants}
               type="submit"
               disabled={loading}
-              className="btn-primary w-full mt-8"
+              className="btn-primary w-full mt-6"
             >
               {loading ? (
                 <div className="flex items-center gap-2">
@@ -288,19 +279,19 @@ const Login = () => {
         {/* Features Section */}
         <motion.div
           variants={itemVariants}
-          className="mt-8 text-center"
+          className="mt-6 text-center"
         >
-          <div className="flex items-center justify-center gap-6 text-sm text-slate-600">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-primary-600" />
+          <div className="flex items-center justify-center gap-4 text-xs text-slate-600">
+            <div className="flex items-center gap-1">
+              <Shield className="h-3 w-3 text-primary-600" />
               <span>Secure</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-success-600" />
+            <div className="flex items-center gap-1">
+              <Users className="h-3 w-3 text-success-600" />
               <span>Team Management</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-warning-600" />
+            <div className="flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-warning-600" />
               <span>Modern</span>
             </div>
           </div>

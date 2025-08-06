@@ -137,7 +137,7 @@ const CandidateViewModal = ({ candidate, open, onClose, onUpdate }) => {
         <span className="font-medium text-gray-700">{label}:</span>
         <span className="ml-2 text-gray-900">
           {isLink && value ? (
-            <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+            <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
               {value}
             </a>
           ) : (

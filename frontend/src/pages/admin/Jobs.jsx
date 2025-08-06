@@ -8,14 +8,14 @@ import api from '../../services/api'
 // Only allow these values for status and assigned_hr
 const ALLOWED_STATUSES = ['open', 'allocated', 'closed', 'submitted', '']
 const cardVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
 }
 
 const modalVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } },
-  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
+  hidden: { opacity: 0, scale: 0.98 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, scale: 0.98, transition: { duration: 0.15 } }
 }
 
 const AdminJobs = () => {
@@ -23,15 +23,15 @@ const AdminJobs = () => {
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
     status: '',
-    start_date_from: '',
-    start_date_to: '',
+    start_date: '',
+    end_date: '',
     assigned_hr: ''
   })
   const [search, setSearch] = useState('')
   const [appliedFilters, setAppliedFilters] = useState({
     status: '',
-    start_date_from: '',
-    start_date_to: '',
+    start_date: '',
+    end_date: '',
     assigned_hr: ''
   })
   const [appliedSearch, setAppliedSearch] = useState('')
@@ -86,16 +86,16 @@ const AdminJobs = () => {
     if (ALLOWED_STATUSES.includes(filtersObj.status)) valid.status = filtersObj.status
     // Only allow valid date strings (YYYY-MM-DD or empty)
     if (
-      !filtersObj.start_date_from ||
-      /^\d{4}-\d{2}-\d{2}$/.test(filtersObj.start_date_from)
+      !filtersObj.start_date ||
+      /^\d{4}-\d{2}-\d{2}$/.test(filtersObj.start_date)
     ) {
-      valid.start_date_from = filtersObj.start_date_from
+      valid.start_date = filtersObj.start_date
     }
     if (
-      !filtersObj.start_date_to ||
-      /^\d{4}-\d{2}-\d{2}$/.test(filtersObj.start_date_to)
+      !filtersObj.end_date ||
+      /^\d{4}-\d{2}-\d{2}$/.test(filtersObj.end_date)
     ) {
-      valid.start_date_to = filtersObj.start_date_to
+      valid.end_date = filtersObj.end_date
     }
     // Only allow assigned_hr if it's in hrUsers or empty
     if (
@@ -113,8 +113,8 @@ const AdminJobs = () => {
       const params = new URLSearchParams()
       const validFilters = getValidFilters(appliedFilters)
       if (validFilters.status) params.append('status', validFilters.status)
-      if (validFilters.start_date_from) params.append('start_date_from', validFilters.start_date_from)
-      if (validFilters.start_date_to) params.append('start_date_to', validFilters.start_date_to)
+      if (validFilters.start_date) params.append('start_date', validFilters.start_date)
+      if (validFilters.end_date) params.append('end_date', validFilters.end_date)
       if (validFilters.assigned_hr) params.append('assigned_hr', validFilters.assigned_hr)
       // Only send allowed filters, never send search to backend
       const response = await api.get(`/admin/jobs?${params.toString()}`)
@@ -133,8 +133,8 @@ const AdminJobs = () => {
   const isAnyFilterActive = () => {
     return (
       filters.status !== '' ||
-      filters.start_date_from !== '' ||
-      filters.start_date_to !== '' ||
+      filters.start_date !== '' ||
+      filters.end_date !== '' ||
       filters.assigned_hr !== ''
     )
   }
@@ -149,8 +149,8 @@ const AdminJobs = () => {
     // Only compare allowed filter fields
     return (
       filters.status !== appliedFilters.status ||
-      filters.start_date_from !== appliedFilters.start_date_from ||
-      filters.start_date_to !== appliedFilters.start_date_to ||
+      filters.start_date !== appliedFilters.start_date ||
+      filters.end_date !== appliedFilters.end_date ||
       filters.assigned_hr !== appliedFilters.assigned_hr ||
       search !== appliedSearch
     )
@@ -160,13 +160,13 @@ const AdminJobs = () => {
   const isClearAllEnabled = () => {
     return (
       filters.status !== '' ||
-      filters.start_date_from !== '' ||
-      filters.start_date_to !== '' ||
+      filters.start_date !== '' ||
+      filters.end_date !== '' ||
       filters.assigned_hr !== '' ||
       search !== '' ||
       appliedFilters.status !== '' ||
-      appliedFilters.start_date_from !== '' ||
-      appliedFilters.start_date_to !== '' ||
+      appliedFilters.start_date !== '' ||
+      appliedFilters.end_date !== '' ||
       appliedFilters.assigned_hr !== '' ||
       appliedSearch !== ''
     )
@@ -182,8 +182,8 @@ const AdminJobs = () => {
     // Only apply allowed filters
     setAppliedFilters({
       status: filters.status,
-      start_date_from: filters.start_date_from,
-      start_date_to: filters.start_date_to,
+      start_date: filters.start_date,
+      end_date: filters.end_date,
       assigned_hr: filters.assigned_hr
     })
     setAppliedSearch(search)
@@ -201,47 +201,51 @@ const AdminJobs = () => {
     setSearch('')
     setFilters({
       status: '',
-      start_date_from: '',
-      start_date_to: '',
+      start_date: '',
+      end_date: '',
       assigned_hr: ''
     })
     setAppliedSearch('')
     setAppliedFilters({
       status: '',
-      start_date_from: '',
-      start_date_to: '',
+      start_date: '',
+      end_date: '',
       assigned_hr: ''
     })
     fetchJobs()
+    // Refresh the entire page
+    window.location.reload()
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
+  const getJobStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
       case 'open':
-        return 'badge-success'
+        return 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300'
       case 'allocated':
-        return 'badge-info'
+        return 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300'
       case 'closed':
-        return 'badge-secondary'
-      case 'submit':
-        return 'badge-warning'
+        return 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300'
+      case 'submitted':
+        return 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300'
+      case 'demand closed':
+        return 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300'
       default:
-        return 'badge-secondary'
+        return 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300'
     }
   }
 
   const clearFilters = () => {
     setFilters({
       status: '',
-      start_date_from: '',
-      start_date_to: '',
+      start_date: '',
+      end_date: '',
       assigned_hr: ''
     })
     setSearch('')
     setAppliedFilters({
       status: '',
-      start_date_from: '',
-      start_date_to: '',
+      start_date: '',
+      end_date: '',
       assigned_hr: ''
     })
     setAppliedSearch('')
@@ -258,19 +262,19 @@ const AdminJobs = () => {
     ) {
       return false
     }
-    // Start date from
+    // Start date
     if (
-      appliedFilters.start_date_from &&
+      appliedFilters.start_date &&
       job.start_date &&
-      new Date(job.start_date) < new Date(appliedFilters.start_date_from)
+      new Date(job.start_date).toDateString() !== new Date(appliedFilters.start_date).toDateString()
     ) {
       return false
     }
-    // Start date to
+    // End date
     if (
-      appliedFilters.start_date_to &&
-      job.start_date &&
-      new Date(job.start_date) > new Date(appliedFilters.start_date_to)
+      appliedFilters.end_date &&
+      job.end_date &&
+      new Date(job.end_date).toDateString() !== new Date(appliedFilters.end_date).toDateString()
     ) {
       return false
     }
@@ -312,16 +316,22 @@ const AdminJobs = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-4xl font-bold gradient-text mb-2">Jobs Management</h1>
-          <p className="text-slate-600 text-lg">View and manage all job openings</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Jobs</h1>
+          <p className="text-gray-600">Manage your job openings</p>
         </div>
-        <button
-          onClick={() => navigate('/admin/add-job')}
-          className="btn-primary"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Add Job</span>
-        </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-blue-600">
+            <Briefcase className="h-4 w-4" />
+            <span>Active Positions</span>
+          </div>
+          <button
+            onClick={() => navigate('/admin/add-job')}
+            className="btn-primary"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Add Job</span>
+          </button>
+        </div>
       </motion.div>
 
       {/* Search and Filters */}
@@ -330,146 +340,168 @@ const AdminJobs = () => {
         initial="hidden"
         animate="visible"
         transition={{ delay: 0.1 }}
-        className="card p-6"
+        className="bg-white/30 backdrop-blur-sm rounded-xl border border-white/20 p-4"
       >
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-primary-600" />
-            <h3 className="text-lg font-semibold text-slate-900">Search & Filters</h3>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {/* Search - spans 2 columns */}
+          <div className="md:col-span-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search jobs..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="btn-ghost"
-          >
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-          </button>
-        </div>
 
-        {/* Search Bar */}
-        <div className="flex gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+          {/* Status Filter */}
+          <div>
+            <select
+              value={filters.status}
+              onChange={(e) => {
+                const value = e.target.value
+                setFilters({ ...filters, status: value })
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="">All Status</option>
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+              <option value="submitted">Submitted</option>
+              <option value="demand closed">Demand Closed</option>
+            </select>
+          </div>
+
+          {/* Start Date */}
+          <div>
             <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search by title, description, location..."
-              className="input-field pl-12"
+              type="date"
+              value={filters.start_date}
+              onChange={(e) => {
+                const value = e.target.value
+                if (!value || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                  setFilters({ ...filters, start_date: value })
+                }
+              }}
+              placeholder="Start Date"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>
-          <button
-            onClick={handleSearch}
-            className="btn-primary px-6"
-            disabled={!isSearchButtonEnabled()}
-            style={!isSearchButtonEnabled() ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-          >
-            Search
-          </button>
+
+          {/* End Date */}
+          <div>
+            <input
+              type="date"
+              value={filters.end_date}
+              onChange={(e) => {
+                const value = e.target.value
+                if (!value || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                  setFilters({ ...filters, end_date: value })
+                }
+              }}
+              placeholder="End Date"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            />
+          </div>
+
+          {/* HR Filter */}
+          <div>
+            <select
+              value={filters.assigned_hr}
+              onChange={(e) => {
+                const value = e.target.value
+                if (
+                  value === '' ||
+                  hrUsers.some(u => String(u.id) === String(value))
+                ) {
+                  setFilters({ ...filters, assigned_hr: value })
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value="">All HR</option>
+              {hrUsers.map(user => (
+                <option key={user.id} value={user.id}>{user.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleApplyFilters}
+              className="btn-primary px-4"
+              disabled={!isApplyFiltersEnabled()}
+              style={!isApplyFiltersEnabled() ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            >
+              Apply
+            </button>
+            <button
+              onClick={handleClearAll}
+              className="btn-secondary px-4"
+              disabled={!isClearAllEnabled()}
+              style={!isClearAllEnabled() ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
-        {/* Filters */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setFilters({ ...filters, status: value })
-                    }}
-                    className="select-field"
-                  >
-                    <option value="">All Status</option>
-                    <option value="open">Open</option>
-                    <option value="closed">Closed</option>
-                    <option value="submitted">Submitted</option>
-                    <option value="demand closed">Demand Closed</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date From</label>
-                  <input
-                    type="date"
-                    value={filters.start_date_from}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      if (!value || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                        setFilters({ ...filters, start_date_from: value })
-                      }
-                    }}
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date To</label>
-                  <input
-                    type="date"
-                    value={filters.start_date_to}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      if (!value || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-                        setFilters({ ...filters, start_date_to: value })
-                      }
-                    }}
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Assigned HR</label>
-                  <select
-                    value={filters.assigned_hr}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      if (
-                        value === '' ||
-                        hrUsers.some(u => String(u.id) === String(value))
-                      ) {
-                        setFilters({ ...filters, assigned_hr: value })
-                      }
-                    }}
-                    className="select-field"
-                  >
-                    <option value="">All HR</option>
-                    {hrUsers.map(user => (
-                      <option key={user.id} value={user.id}>{user.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleApplyFilters}
-                  className="btn-primary"
-                  disabled={!isApplyFiltersEnabled()}
-                  style={!isApplyFiltersEnabled() ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                >
-                  Apply Filters
+        {/* Results Count */}
+        <div className="flex items-center justify-end mt-4">
+          <span className="text-sm text-gray-600">
+            {filteredJobs.length} results
+          </span>
+        </div>
+
+        {/* Active Filters */}
+        {(appliedFilters.status || appliedFilters.assigned_hr || appliedFilters.start_date || appliedFilters.end_date || appliedSearch) && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {appliedFilters.status && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Status: {appliedFilters.status}
+                <button onClick={() => setAppliedFilters({...appliedFilters, status: ''})} className="hover:text-blue-600">
+                  <X className="h-3 w-3" />
                 </button>
-                <button
-                  onClick={handleClearAll}
-                  className="btn-secondary"
-                  disabled={!isClearAllEnabled()}
-                  style={!isClearAllEnabled() ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                >
-                  Clear All
+              </span>
+            )}
+            {appliedFilters.start_date && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                Start: {appliedFilters.start_date}
+                <button onClick={() => setAppliedFilters({...appliedFilters, start_date: ''})} className="hover:text-yellow-600">
+                  <X className="h-3 w-3" />
                 </button>
-                <span className="text-sm text-slate-500">
-                  {filteredJobs.length} jobs found
-                </span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </span>
+            )}
+            {appliedFilters.end_date && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                End: {appliedFilters.end_date}
+                <button onClick={() => setAppliedFilters({...appliedFilters, end_date: ''})} className="hover:text-orange-600">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {appliedFilters.assigned_hr && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                HR: {hrUsers.find(u => String(u.id) === String(appliedFilters.assigned_hr))?.name}
+                <button onClick={() => setAppliedFilters({...appliedFilters, assigned_hr: ''})} className="hover:text-green-600">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+            {appliedSearch && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                Search: {appliedSearch}
+                <button onClick={() => setAppliedSearch('')} className="hover:text-purple-600">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
       </motion.div>
 
       {/* Jobs Table */}
@@ -478,113 +510,117 @@ const AdminJobs = () => {
         initial="hidden"
         animate="visible"
         transition={{ delay: 0.2 }}
-        className="card p-6"
+        className="bg-white/90 backdrop-blur-sm shadow-soft border border-white/40 rounded-xl"
       >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-slate-900">All Jobs</h3>
-          <span className="text-sm text-slate-500">{filteredJobs.length} jobs found</span>
+        {/* Table Header */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Job Openings</h3>
+              <p className="text-sm text-gray-600 mt-1">Manage and track all job positions</p>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-blue-600">
+              <Briefcase className="h-4 w-4" />
+              <span>{filteredJobs.length} Total Positions</span>
+            </div>
+          </div>
         </div>
         
         {filteredJobs.length === 0 ? (
           <div className="text-center py-12">
-            <Briefcase className="mx-auto h-16 w-16 text-slate-300 mb-4" />
-            <p className="text-lg text-slate-500 mb-2">No jobs found</p>
-            <p className="text-sm text-slate-400">Try adjusting your search criteria or add a new job.</p>
+            <Briefcase className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+            <p className="text-lg text-gray-500 mb-2">No jobs found</p>
+            <p className="text-sm text-gray-400">Try adjusting your search criteria or add a new job.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="table-modern">
-              <thead>
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <tr>
-                  <th>Job ID</th>
-                  <th>Title</th>
-                  <th>Location</th>
-                  <th>CTC</th>
-                  <th>CSA ID</th>
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Assigned To</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Job Details</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location & Package</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Timeline</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">CSA ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Assigned HR</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-200">
                 {filteredJobs.map((job, index) => (
                   <motion.tr
                     key={job.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.05 * index }}
-                    className="hover:bg-slate-50/50 transition-colors duration-200"
+                    transition={{ duration: 0.2, delay: 0.02 * index }}
+                    className="hover:bg-blue-50/50 transition-colors duration-200"
                   >
-                    <td className="font-medium text-slate-900">
-                      {job.job_id || 'N/A'}
-                    </td>
-                    <td>
-                      <div className="max-w-xs">
-                        <div className="font-medium text-slate-900">{job.title}</div>
-                        <div className="text-xs text-slate-500 truncate" title={job.description}>
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="font-semibold text-gray-900 text-sm">{job.title}</div>
+                        <div className="text-xs text-gray-500 truncate max-w-xs" title={job.description}>
+                          ID: {job.job_id || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-400 truncate max-w-xs" title={job.description}>
                           {job.description}
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-slate-400" />
-                        <span>{job.location || 'Remote'}</span>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-sm text-gray-700">
+                          <MapPin className="h-3 w-3 text-gray-400" />
+                          <span>{job.location || 'Remote'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-700">
+                          <DollarSign className="h-3 w-3 text-gray-400" />
+                          <span>{job.salary_package || 'Not specified'}</span>
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-semibold text-slate-400">₹</span>
-                        <span>{job.salary_package || 'Not specified'}</span>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                          <span>Start: {job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                          <span>End: {job.end_date ? new Date(job.end_date).toLocaleDateString() : 'N/A'}</span>
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      <span className="font-mono text-sm">{job.csa_id || 'N/A'}</span>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {job.csa_id || 'N/A'}
+                      </span>
                     </td>
-                    <td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                        <span>
-                          {job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}
-                        </span>
+                        <User className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm text-gray-700">{job.assigned_hr_name || 'Unassigned'}</span>
                       </div>
                     </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                        <span>
-                          {job.end_date ? new Date(job.end_date).toLocaleDateString() : 'N/A'}
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-slate-400" />
-                        <span>{job.assigned_hr_name || 'Unassigned'}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${getStatusColor(job.status)}`}>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getJobStatusColor(job.status)}`}>
                         {job.status}
                       </span>
                     </td>
-                    <td>
-                      <div className="flex items-center gap-2">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleViewJob(job)}
-                          className="p-2 rounded-lg text-primary-600 hover:bg-primary-50 hover:text-primary-700 transition-colors duration-200"
+                          className="p-1 hover:bg-blue-50 rounded transition-colors duration-200"
                           title="View Details"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 text-blue-600" />
                         </button>
                         <button
                           onClick={() => handleEditJob(job)}
-                          className="p-2 rounded-lg text-success-600 hover:bg-success-50 hover:text-success-700 transition-colors duration-200"
+                          className="p-1 hover:bg-green-50 rounded transition-colors duration-200"
                           title="Edit Job"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-4 w-4 text-green-600" />
                         </button>
                       </div>
                     </td>
@@ -614,10 +650,10 @@ const AdminJobs = () => {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="bg-white/95 backdrop-blur-md rounded-3xl shadow-large p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-xl shadow-large p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-slate-900">Job Details</h3>
+                <h3 className="text-2xl font-bold text-gray-900">Job Details</h3>
                 <button
                   onClick={() => setViewJob(null)}
                   className="p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
@@ -631,7 +667,7 @@ const AdminJobs = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Detail label="Job ID" value={viewJob.job_id} />
                   <Detail label="Status" value={
-                    <span className={`badge ${getStatusColor(viewJob.status)}`}>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getJobStatusColor(viewJob.status)}`}>
                       {viewJob.status}
                     </span>
                   } />
@@ -675,10 +711,10 @@ const AdminJobs = () => {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="bg-white/95 backdrop-blur-md rounded-3xl shadow-large p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-xl shadow-large p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-slate-900">Edit Job</h3>
+                <h3 className="text-2xl font-bold text-gray-900">Edit Job</h3>
                 <button
                   onClick={() => setEditJob(null)}
                   className="p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
@@ -717,7 +753,10 @@ const EditJobForm = ({ job, hrUsers, onUpdate, onCancel }) => {
     location: job.location || '',
     salary_package: job.salary_package || '',
     status: job.status || 'open',
-    assigned_hr: job.assigned_hr || ''
+    assigned_hr: job.assigned_hr || '',
+    start_date: job.start_date || '',
+    end_date: job.end_date || '',
+    csa_id: job.csa_id || ''
   })
 
   const handleSubmit = (e) => {
@@ -768,6 +807,40 @@ const EditJobForm = ({ job, hrUsers, onUpdate, onCancel }) => {
             type="text"
             name="salary_package"
             value={formData.salary_package}
+            onChange={handleChange}
+            className="input-field"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">CSA ID</label>
+          <input
+            type="text"
+            name="csa_id"
+            value={formData.csa_id}
+            onChange={handleChange}
+            className="input-field"
+            placeholder="Enter CSA ID"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Start Date</label>
+          <input
+            type="date"
+            name="start_date"
+            value={formData.start_date}
+            onChange={handleChange}
+            className="input-field"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">End Date</label>
+          <input
+            type="date"
+            name="end_date"
+            value={formData.end_date}
             onChange={handleChange}
             className="input-field"
           />

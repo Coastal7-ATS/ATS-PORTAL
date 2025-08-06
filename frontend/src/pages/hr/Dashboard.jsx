@@ -75,7 +75,7 @@ const HRDashboard = () => {
       name: 'Total Jobs',
       value: dashboardData?.total_jobs || 0,
       icon: Briefcase,
-      color: 'from-blue-500 to-blue-600'
+      color: 'from-primary-500 to-primary-600'
     },
     {
       name: 'Open Jobs',
@@ -105,7 +105,7 @@ const HRDashboard = () => {
       name: 'Total Candidates',
       value: dashboardData?.total_candidates || 0,
       icon: Users,
-      color: 'from-green-500 to-emerald-500'
+      color: 'from-success-500 to-emerald-500'
     },
   ]
 
@@ -120,14 +120,51 @@ const HRDashboard = () => {
           dashboardData?.submitted_jobs || 0,
           dashboardData?.demand_closed_jobs || 0,
         ],
-        backgroundColor: [
-          '#F59E0B',
-          '#6B7280',
-          '#8B5CF6',
-          '#EF4444',
-        ],
-        borderWidth: 2,
-        borderColor: '#fff',
+        backgroundColor: function(context) {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) {
+            return null;
+          }
+          
+          const index = context.dataIndex;
+          const colors = [
+            // Open - Orange gradient (more vibrant)
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#f88013');
+              gradient.addColorStop(0.5, '#ea580c');
+              gradient.addColorStop(1, '#c2410c');
+              return gradient;
+            },
+            // Closed - Gray gradient (light gray to dark blue-gray)
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#d1d5db'); // light gray
+              gradient.addColorStop(0.5, '#9ca3af'); // medium gray
+              gradient.addColorStop(1, '#4b5563'); // dark blue-gray like the logo
+              return gradient;
+            },
+            // Submitted - Purple gradient (more vibrant)
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#a78bfa'); // lighter lavender
+              gradient.addColorStop(0.5, '#8b5cf6'); // medium purple
+              gradient.addColorStop(1, '#7c3aed'); // deep purple
+              return gradient;
+            },
+            // Demand Closed - Red gradient (more vibrant)
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#ef4555');
+              gradient.addColorStop(0.5, '#dc2626');
+              gradient.addColorStop(1, '#b91c1c');
+              return gradient;
+            }
+          ];
+          
+          return colors[index] ? colors[index]() : '#6b7280';
+        },
       },
     ],
   }
@@ -142,11 +179,43 @@ const HRDashboard = () => {
           dashboardData?.rejected_candidates || 0,
           (dashboardData?.total_candidates || 0) - (dashboardData?.selected_candidates || 0) - (dashboardData?.rejected_candidates || 0),
         ],
-        backgroundColor: [
-          '#10B981',
-          '#EF4444',
-          '#F59E0B',
-        ],
+        backgroundColor: function(context) {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) {
+            return null;
+          }
+          
+          const index = context.dataIndex;
+          const colors = [
+            // Selected - Green gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#86efac');
+              gradient.addColorStop(0.5, '#4ade80');
+              gradient.addColorStop(1, '#22c55e');
+              return gradient;
+            },
+            // Rejected - Red gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#fca5a5');
+              gradient.addColorStop(0.5, '#f87171');
+              gradient.addColorStop(1, '#ef4444');
+              return gradient;
+            },
+            // Applied - Yellow gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#fde047');
+              gradient.addColorStop(0.5, '#facc15');
+              gradient.addColorStop(1, '#eab308');
+              return gradient;
+            }
+          ];
+          
+          return colors[index] ? colors[index]() : '#6b7280';
+        },
         borderRadius: 6,
       },
     ],
@@ -164,16 +233,15 @@ const HRDashboard = () => {
     <div className="space-y-8">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.3 }}
         className="flex items-center justify-between"
       >
         <div>
           <h1 className="text-4xl font-bold gradient-text mb-2">HR Dashboard</h1>
           <p className="text-slate-600 text-lg">Overview of your assigned jobs and candidates</p>
         </div>
-        
       </motion.div>
 
       {/* Stats Grid */}
@@ -181,9 +249,9 @@ const HRDashboard = () => {
         {stats.map((stat, index) => (
           <motion.div
             key={stat.name}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
           >
             <AnimatedDashboardCard
               color={stat.color}
@@ -201,13 +269,13 @@ const HRDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Job Status Chart */}
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
+          initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.3, delay: 0.4 }}
         >
           <div className="card p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Job Status Distribution</h3>
+              <h3 className="text-xl font-bold text-slate-800">Job Status Distribution</h3>
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 <div className="w-3 h-3 bg-warning-500 rounded-full"></div>
                 <span>Your Jobs</span>
@@ -232,12 +300,6 @@ const HRDashboard = () => {
                       },
                     },
                   },
-                  elements: {
-                    arc: {
-                      borderWidth: 3,
-                      borderColor: '#fff'
-                    }
-                  }
                 }}
               />
             </div>
@@ -246,13 +308,13 @@ const HRDashboard = () => {
 
         {/* Candidate Status Chart */}
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 10 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
         >
           <div className="card p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Candidate Status</h3>
+              <h3 className="text-xl font-bold text-slate-800">Candidate Status</h3>
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 <div className="w-3 h-3 bg-success-500 rounded-full"></div>
                 <span>This Month</span>
@@ -295,7 +357,7 @@ const HRDashboard = () => {
                     },
                   },
                   animation: {
-                    duration: 900,
+                    duration: 600,
                     easing: 'easeOutQuart',
                   },
                 }}
@@ -308,14 +370,13 @@ const HRDashboard = () => {
       {/* Recent Jobs below the charts */}
       <div>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
+          transition={{ duration: 0.3, delay: 0.7 }}
         >
           <div className="card p-6 mt-2">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Recent Jobs</h3>
-              {/* Removed View All button as per instruction */}
+              <h3 className="text-xl font-bold text-slate-800">Recent Jobs</h3>
             </div>
             
             <div className="space-y-4">
@@ -330,11 +391,11 @@ const HRDashboard = () => {
                     key={job.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.8 + index * 0.1 }}
-                    className="p-4 bg-slate-50/50 rounded-xl hover:bg-slate-100/50 transition-colors duration-200"
+                    transition={{ duration: 0.2, delay: 0.8 + index * 0.05 }}
+                    className="p-4 bg-pastel-blue/30 rounded-xl hover:bg-pastel-blue/50 transition-colors duration-200"
                   >
                     <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-slate-900 text-sm">{job.title}</h4>
+                      <h4 className="font-semibold text-slate-800 text-sm">{job.title}</h4>
                       <span className={`badge ${
                         job.status === 'open' ? 'badge-success' :
                         job.status === 'allocated' ? 'badge-info' :

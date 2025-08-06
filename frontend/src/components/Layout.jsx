@@ -17,7 +17,7 @@ import {
 
 // --- Modern Animated Dashboard Card ---
 export function AnimatedDashboardCard({
-  color = 'from-blue-500 to-blue-600',
+  color = 'from-primary-500 to-primary-600',
   icon: Icon,
   value,
   label,
@@ -29,38 +29,41 @@ export function AnimatedDashboardCard({
   return (
     <div
       className={`
-        card-gradient p-6 flex items-center gap-4 min-w-[200px] 
-        hover-lift group relative overflow-hidden
+        bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-soft
+        hover:shadow-medium transition-all duration-200 hover:scale-[1.02]
+        border border-white/50 group relative overflow-hidden
         ${className}
       `}
     >
       {/* Background gradient overlay */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-5 group-hover:opacity-10 transition-opacity duration-300`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-10 group-hover:opacity-15 transition-opacity duration-200`} />
       
-      <div className="relative z-10">
-        <div
-          className={`
-            flex items-center justify-center rounded-2xl h-14 w-14
-            bg-gradient-to-br ${color} text-white shadow-lg
-            transition-all duration-300 group-hover:scale-110 group-hover:shadow-glow
-          `}
-        >
-          {Icon && <Icon className="h-7 w-7" />}
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="flex-1">
+          <div className="text-3xl font-bold text-slate-800 mb-1">{value}</div>
+          <div className="text-sm font-medium text-slate-600">{label}</div>
+          {trend && (
+            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
+              trend === 'up' ? 'text-success-600' : 'text-danger-600'
+            }`}>
+              <span className={trend === 'up' ? 'rotate-0' : 'rotate-180'}>↗</span>
+              {trendValue}
+            </div>
+          )}
+          {children}
         </div>
-      </div>
-      
-      <div className="relative z-10 flex-1">
-        <div className="text-3xl font-bold text-slate-900 mb-1">{value}</div>
-        <div className="text-sm font-medium text-slate-600">{label}</div>
-        {trend && (
-          <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
-            trend === 'up' ? 'text-success-600' : 'text-danger-600'
-          }`}>
-            <span className={trend === 'up' ? 'rotate-0' : 'rotate-180'}>↗</span>
-            {trendValue}
+        
+        <div className="relative z-10">
+          <div
+            className={`
+              flex items-center justify-center rounded-full h-12 w-12
+              bg-gradient-to-br ${color} text-white shadow-soft
+              transition-all duration-200 group-hover:scale-110 group-hover:shadow-glow
+            `}
+          >
+            {Icon && <Icon className="h-6 w-6" />}
           </div>
-        )}
-        {children}
+        </div>
       </div>
     </div>
   );
@@ -81,16 +84,16 @@ const Layout = () => {
   const isAdmin = user?.role === 'admin'
 
   const adminNavItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: Home, description: 'Overview & Analytics' },
-    { name: 'Jobs', path: '/admin/jobs', icon: Briefcase, description: 'Manage Job Openings' },
-    { name: 'HR Users', path: '/admin/users', icon: Users, description: 'HR Team Management' },
-    { name: 'Candidates', path: '/admin/candidates', icon: UserCheck, description: 'Candidate Database' },
+    { name: 'Dashboard', path: '/admin/dashboard', icon: Home },
+    { name: 'Jobs', path: '/admin/jobs', icon: Briefcase },
+    { name: 'HR Users', path: '/admin/users', icon: Users },
+    { name: 'Candidates', path: '/admin/candidates', icon: UserCheck },
   ]
 
   const hrNavItems = [
-    { name: 'Dashboard', path: '/hr/dashboard', icon: Home, description: 'Overview & Analytics' },
-    { name: 'My Jobs', path: '/hr/jobs', icon: Briefcase, description: 'Manage Your Jobs' },
-    { name: 'Candidates', path: '/hr/candidates', icon: UserCheck, description: 'Candidate Management' },
+    { name: 'Dashboard', path: '/hr/dashboard', icon: Home },
+    { name: 'My Jobs', path: '/hr/jobs', icon: Briefcase },
+    { name: 'Candidates', path: '/hr/candidates', icon: UserCheck },
   ]
 
   const navItems = isAdmin ? adminNavItems : hrNavItems
@@ -108,25 +111,18 @@ const Layout = () => {
       <button
         onClick={onClick}
         className={`
-          w-full flex items-center px-4 py-4 text-sm font-medium rounded-2xl
-          transition-all duration-300 ease-in-out transform hover:scale-[1.02]
-          group relative overflow-hidden
+          w-full flex items-center px-6 py-4 text-sm font-medium rounded-xl
+          transition-all duration-200 ease-in-out group relative overflow-hidden
           ${isActive
-            ? 'bg-gradient-to-r from-primary-50 to-indigo-50 text-primary-700 shadow-soft border border-primary-200'
-            : 'text-slate-600 hover:bg-slate-50/80 hover:text-slate-900 hover:shadow-soft'
+            ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
+            : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'
           }
           ${className}
         `}
       >
-        {/* Active indicator */}
-        {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-primary-500 to-indigo-500 rounded-r-full" />
-        )}
-        
-        <Icon className={`mr-4 h-5 w-5 transition-all duration-300 ${isActive ? 'text-primary-600 scale-110' : 'group-hover:scale-110'}`} />
+        <Icon className={`mr-4 h-5 w-5 transition-all duration-200 ${isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600'}`} />
         <div className="flex-1 text-left">
           <div className="font-semibold">{item.name}</div>
-          <div className="text-xs text-slate-500 font-normal">{item.description}</div>
         </div>
       </button>
     )
@@ -136,10 +132,10 @@ const Layout = () => {
   const UserProfile = ({ className = "" }) => (
     <div className={`relative group ${className}`}>
       <div
-        className="flex items-center p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-white/40 hover:bg-white/90 transition-all duration-300 hover:shadow-soft cursor-pointer"
+        className="flex items-center p-4 bg-gray-50 backdrop-blur-sm rounded-xl border border-gray-200 hover:bg-blue-50 transition-all duration-200 cursor-pointer"
       >
         <div className="flex-shrink-0">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:shadow-glow transition-all duration-300">
+          <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-blue-700 group-hover:border-blue-800 transition-all duration-200">
             <span className="text-lg font-bold text-white">
               {user?.name?.charAt(0)?.toUpperCase() || 'U'}
             </span>
@@ -147,14 +143,14 @@ const Layout = () => {
         </div>
         <div className="ml-4 flex-1 flex items-center justify-between">
           <div className="text-left">
-            <p className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+            <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
               {user?.name || 'User'}
               {/* Logout icon, appears on hover */}
               <button
                 onClick={handleLogout}
                 className={`
                   ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200
-                  text-danger-600 hover:text-danger-800 p-1 rounded-full
+                  text-gray-500 hover:text-red-600 p-1 rounded-full
                   focus:outline-none
                 `}
                 title="Log Out"
@@ -165,8 +161,8 @@ const Layout = () => {
               </button>
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-medium">{user?.role?.toUpperCase() || 'USER'}</span>
-              {isAdmin && <Shield className="h-3 w-3 text-primary-600" />}
+              <span className="text-xs text-gray-600 font-medium">{user?.role?.toUpperCase() || 'USER'}</span>
+              {isAdmin && <Shield className="h-3 w-3 text-blue-600" />}
             </div>
           </div>
         </div>
@@ -175,11 +171,11 @@ const Layout = () => {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
+    <div className="min-h-screen bg-white">
       {/* Mobile Sidebar Overlay */}
       <div 
         className={`
-          fixed inset-0 z-50 lg:hidden transition-opacity duration-300 ease-in-out
+          fixed inset-0 z-50 lg:hidden transition-opacity duration-200 ease-in-out
           ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}
         `}
       >
@@ -192,13 +188,13 @@ const Layout = () => {
         {/* Mobile Sidebar */}
         <div 
           className={`
-            fixed inset-y-0 left-0 flex w-80 flex-col bg-white/90 backdrop-blur-md shadow-2xl
-            transform transition-transform duration-300 ease-in-out
+            fixed inset-y-0 left-0 flex w-80 flex-col bg-white shadow-2xl border-r border-gray-200
+            transform transition-transform duration-200 ease-in-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           `}
         >
           {/* Mobile Header */}
-          <div className="flex h-20 items-center justify-between px-6 border-b border-slate-200/50">
+          <div className="flex h-20 items-center justify-between px-6 border-b border-gray-200">
             <img
               src="/Coastal_Seven_Consulting_color.png"
               alt="Coastal Seven Consulting Logo"
@@ -207,9 +203,9 @@ const Layout = () => {
             />
             <button 
               onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
+              className="p-2 rounded-xl hover:bg-blue-50 transition-colors duration-200"
             >
-              <X className="h-6 w-6 text-slate-500" />
+              <X className="h-6 w-6 text-gray-600" />
             </button>
           </div>
 
@@ -232,7 +228,7 @@ const Layout = () => {
           </nav>
 
           {/* Mobile User Section */}
-          <div className="p-4 border-t border-slate-200/50">
+          <div className="p-4 border-t border-gray-200">
             <UserProfile />
           </div>
         </div>
@@ -240,9 +236,9 @@ const Layout = () => {
 
       {/* Desktop Sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-80 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white/80 backdrop-blur-md border-r border-white/40 shadow-soft">
+        <div className="flex flex-col flex-grow bg-white shadow-2xl border-r border-gray-200">
           {/* Desktop Header */}
-          <div className="flex items-center h-20 px-6 border-b border-slate-200/50">
+          <div className="flex items-center h-20 px-6 border-b border-gray-200">
             <img
               src="/Coastal_Seven_Consulting_color.png"
               alt="Coastal Seven Consulting Logo"
@@ -252,7 +248,7 @@ const Layout = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="flex-1 space-y-3 p-6">
+          <nav className="flex-1 space-y-2 p-6">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path
               return (
@@ -267,7 +263,7 @@ const Layout = () => {
           </nav>
 
           {/* Desktop User Section */}
-          <div className="p-6 border-t border-slate-200/50">
+          <div className="p-6 border-t border-gray-200">
             <UserProfile />
           </div>
         </div>
@@ -276,21 +272,21 @@ const Layout = () => {
       {/* Main Content Area */}
       <div className="lg:pl-80">
         {/* Top Navigation Bar */}
-        <div className="sticky top-0 z-40 flex h-20 shrink-0 items-center gap-x-4 border-b border-slate-200/50 bg-white/80 backdrop-blur-md px-6 shadow-soft">
+        <div className="sticky top-0 z-40 flex h-20 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-6 shadow-sm">
           <button
             type="button"
-            className="lg:hidden p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
+            className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors duration-200"
             onClick={() => setSidebarOpen(true)}
           >
-            <Menu className="h-6 w-6 text-slate-700" />
+            <Menu className="h-6 w-6 text-gray-700" />
           </button>
           
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1 items-center">
-              <h1 className="text-2xl font-bold gradient-text">
+              <h1 className="text-2xl font-bold text-blue-600">
                 {location.pathname === '/admin/dashboard' || location.pathname === '/hr/dashboard'
-                  ? 'Recruitment Portal'
-                  : (navItems.find(item => item.path === location.pathname)?.name || 'Recruitment Portal')}
+                  ? 'Dashboard'
+                  : (navItems.find(item => item.path === location.pathname)?.name || 'Dashboard')}
               </h1>
             </div>
           </div>

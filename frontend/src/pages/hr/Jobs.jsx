@@ -15,13 +15,13 @@ const pageVariants = {
 }
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 10 },
   visible: (i = 0) => ({
     opacity: 1,
     y: 0,
     transition: {
-      delay: i * 0.1,
-      duration: 0.5,
+      delay: i * 0.05,
+      duration: 0.3,
       type: 'spring',
       stiffness: 100
     }
@@ -29,17 +29,17 @@ const cardVariants = {
 }
 
 const modalVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
+  hidden: { opacity: 0, scale: 0.98 },
   visible: { 
     opacity: 1, 
     scale: 1, 
     transition: { 
       type: 'spring', 
       stiffness: 300, 
-      damping: 30 
+      damping: 25 
     } 
   },
-  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
+  exit: { opacity: 0, scale: 0.98, transition: { duration: 0.15 } }
 }
 
 const HRJobs = () => {
@@ -121,6 +121,23 @@ const HRJobs = () => {
         return 'badge-secondary'
       default:
         return 'badge-secondary'
+    }
+  }
+
+  const getJobStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'open':
+        return 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300 rounded-full'
+      case 'closed':
+        return 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300 rounded-full'
+      case 'submitted':
+        return 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border border-purple-300 rounded-full'
+      case 'demand closed':
+        return 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300 rounded-full'
+      case 'allocated':
+        return 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300 rounded-full'
+      default:
+        return 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300 rounded-full'
     }
   }
 
@@ -244,10 +261,12 @@ const HRJobs = () => {
         custom={0}
         initial="hidden"
         animate="visible"
-        className="text-left"
+        className="flex items-center justify-between"
       >
-        <h1 className="gradient-text text-3xl font-bold mb-2">My Jobs</h1>
-        <p className="text-slate-600 text-lg">Manage and track your assigned job openings</p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Jobs</h1>
+          <p className="text-gray-600 text-lg">Manage and track your assigned job openings</p>
+        </div>
       </motion.div>
 
       {/* Search and Filter Section */}
@@ -331,105 +350,114 @@ const HRJobs = () => {
         custom={2}
         initial="hidden"
         animate="visible"
-        className="card overflow-hidden"
+        className="bg-white/90 backdrop-blur-sm shadow-soft border border-white/40 rounded-xl"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/50">
-          <h3 className="text-lg font-semibold text-slate-900">Job Openings</h3>
-          <div className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-primary-600" />
-            <span className="text-sm text-slate-500">Active Positions</span>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">Job Openings</h3>
+            <p className="text-sm text-gray-500 mt-1">Manage your assigned job positions</p>
+          </div>
+          <div className="flex items-center gap-2 text-blue-600">
+            <Briefcase className="h-5 w-5" />
+            <span className="text-sm font-medium">Active Positions</span>
           </div>
         </div>
 
         {filteredJobs.length === 0 ? (
           <div className="text-center py-12">
-            <Briefcase className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-500 text-lg">No jobs found</p>
-            <p className="text-slate-400 text-sm">Try adjusting your search or filters</p>
+            <Briefcase className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+            <p className="text-gray-500">No jobs found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="table-modern">
-              <thead>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <tr>
-                  <th>Job Details</th>
-                  <th>Location</th>
-                  <th>Package</th>
-                  <th>CSA ID</th>
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Job Details</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location & Package</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Timeline</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">CSA ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {filteredJobs.map((job, index) => (
                   <motion.tr
                     key={job.job_id}
-                    variants={cardVariants}
-                    custom={index + 3}
-                    initial="hidden"
-                    animate="visible"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: 0.02 * index }}
+                    className="hover:bg-gray-50 transition-colors duration-200"
                   >
-                    <td>
-                      <div className="flex flex-col items-start">
-                        <div className="font-semibold text-slate-900">{job.job_id}</div>
-                        <div className="font-medium text-slate-900">{job.title}</div>
-                        <div className="text-sm text-slate-500 mt-1 max-w-xs truncate" title={job.description}>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="text-sm font-medium text-gray-900">
+                          Job #{job.job_id}
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900 mt-1">
+                          {job.title}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1 max-w-xs truncate" title={job.description}>
                           {job.description}
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <div className="flex items-center text-sm text-slate-900">
-                        <MapPin className="h-4 w-4 mr-2 text-slate-400" />
-                        {job.location}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                          {job.location}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Package: ₹{job.salary_package}
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      <div className="flex items-center text-sm text-slate-900">
-                        ₹{job.salary_package}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                          {job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          End: {job.end_date ? new Date(job.end_date).toLocaleDateString() : 'N/A'}
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      <span className="font-mono text-sm">{job.csa_id || 'N/A'}</span>
-                    </td>
-                    <td>
-                      <div className="flex items-center text-sm text-slate-900">
-                        <Calendar className="h-4 w-4 mr-2 text-slate-400" />
-                        {job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {job.csa_id || 'N/A'}
                       </div>
                     </td>
-                    <td>
-                      <div className="flex items-center text-sm text-slate-900">
-                        <Calendar className="h-4 w-4 mr-2 text-slate-400" />
-                        {job.end_date ? new Date(job.end_date).toLocaleDateString() : 'N/A'}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`badge ${getStatusColor(job.status)}`}>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex px-3 py-1.5 text-xs font-semibold ${getJobStatusColor(
+                          job.status
+                        )}`}
+                      >
                         {job.status}
                       </span>
                     </td>
-                    <td>
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleAddCandidate(job)}
-                          className="p-2 rounded-lg text-danger-600 hover:bg-danger-50 hover:text-danger-700 transition-colors duration-200"
+                          className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded transition-colors duration-200"
                           title="Add Candidate"
                         >
                           <Plus className="h-4 w-4" />
-                          </button>
-                          <button
+                        </button>
+                        <button
                           onClick={() => handleViewCandidates(job)}
-                          className="p-2 rounded-lg text-primary-600 hover:bg-primary-50 hover:text-primary-700 transition-colors duration-200"
+                          className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
                           title="View Candidates"
                         >
                           <Eye className="h-4 w-4" />
                         </button>  
                         <button
                           onClick={() => handleUpdateStatus(job)}
-                          className="p-2 rounded-lg text-success-600 hover:bg-success-50 hover:text-success-700 transition-colors duration-200"
+                          className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 rounded transition-colors duration-200"
                           title="Update Status"
                         >
                           <Edit className="h-4 w-4" />

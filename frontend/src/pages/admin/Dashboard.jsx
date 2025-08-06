@@ -157,19 +157,51 @@ const AdminDashboard = () => {
           Number(dashboardData?.submitted_jobs) || 0,
           Number(dashboardData?.demand_closed_jobs) || 0,
         ],
-        backgroundColor: [
-          '#f59e0b', // amber-500
-          '#6b7280', // gray-500
-          '#8b5cf6', // violet-500
-          '#ef4444', // red-500
-        ],
-        borderColor: [
-          '#d97706', // amber-600
-          '#4b5563', // gray-600
-          '#7c3aed', // violet-600
-          '#dc2626', // red-600
-        ],
-        borderWidth: 2,
+        backgroundColor: function(context) {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) {
+            return null;
+          }
+          
+          const index = context.dataIndex;
+          const colors = [
+            // Open - Orange gradient (more vibrant)
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#f88013');
+              gradient.addColorStop(0.5, '#ea580c');
+              gradient.addColorStop(1, '#c2410c');
+              return gradient;
+            },
+            // Closed - Gray gradient (light gray to dark blue-gray)
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#d1d5db'); // light gray
+              gradient.addColorStop(0.5, '#9ca3af'); // medium gray
+              gradient.addColorStop(1, '#4b5563'); // dark blue-gray like the logo
+              return gradient;
+            },
+            // Submitted - Purple gradient (more vibrant)
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#a78bfa'); // lighter lavender
+              gradient.addColorStop(0.5, '#8b5cf6'); // medium purple
+              gradient.addColorStop(1, '#7c3aed'); // deep purple
+              return gradient;
+            },
+            // Demand Closed - Red gradient (more vibrant)
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#ef4555');
+              gradient.addColorStop(0.5, '#dc2626');
+              gradient.addColorStop(1, '#b91c1c');
+              return gradient;
+            }
+          ];
+          
+          return colors[index] ? colors[index]() : '#6b7280';
+        },
       },
     ],
   }
@@ -183,29 +215,100 @@ const AdminDashboard = () => {
     datasets: [
       {
         data: data,
-        backgroundColor: [
-          '#3b82f6', // blue-500
-          '#10b981', // emerald-500
-          '#f59e0b', // amber-500
-          '#ef4444', // red-500
-          '#8b5cf6', // violet-500
-          '#06b6d4', // cyan-500
-          '#84cc16', // lime-500
-          '#f97316', // orange-500
-          '#ec4899', // pink-500
-          '#6366f1', // indigo-500
-        ],
+        backgroundColor: function(context) {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) {
+            return null;
+          }
+          
+          const index = context.dataIndex;
+          const colors = [
+            // Blue gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#93c5fd');
+              gradient.addColorStop(1, '#3b82f6');
+              return gradient;
+            },
+            // Green gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#86efac');
+              gradient.addColorStop(1, '#10b981');
+              return gradient;
+            },
+            // Yellow gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#fde047');
+              gradient.addColorStop(1, '#eab308');
+              return gradient;
+            },
+            // Red gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#fca5a5');
+              gradient.addColorStop(1, '#ef4444');
+              return gradient;
+            },
+            // Purple gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#c4b5fd');
+              gradient.addColorStop(1, '#8b5cf6');
+              return gradient;
+            },
+            // Cyan gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#67e8f9');
+              gradient.addColorStop(1, '#06b6d4');
+              return gradient;
+            },
+            // Lime gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#bef264');
+              gradient.addColorStop(1, '#84cc16');
+              return gradient;
+            },
+            // Orange gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#fdba74');
+              gradient.addColorStop(1, '#f97316');
+              return gradient;
+            },
+            // Pink gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#f9a8d4');
+              gradient.addColorStop(1, '#ec4899');
+              return gradient;
+            },
+            // Indigo gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#a5b4fc');
+              gradient.addColorStop(1, '#6366f1');
+              return gradient;
+            }
+          ];
+          
+          return colors[index] ? colors[index]() : '#6b7280';
+        },
         borderColor: [
-          '#2563eb', // blue-600
-          '#059669', // emerald-600
-          '#d97706', // amber-600
-          '#dc2626', // red-600
-          '#7c3aed', // violet-600
-          '#0891b2', // cyan-600
-          '#65a30d', // lime-600
-          '#ea580c', // orange-600
-          '#db2777', // pink-600
-          '#4f46e5', // indigo-600
+          '#7dd3fc', // pastel blue border
+          '#4ade80', // pastel green border
+          '#facc15', // pastel yellow border
+          '#f87171', // pastel red border
+          '#a78bfa', // pastel purple border
+          '#22d3ee', // pastel cyan border
+          '#a3e635', // pastel lime border
+          '#fb923c', // pastel orange border
+          '#f472b6', // pastel pink border
+          '#818cf8', // pastel indigo border
         ],
         borderWidth: 2,
       },
@@ -241,7 +344,7 @@ const AdminDashboard = () => {
       name: 'Total Jobs',
       value: Number(dashboardData?.total_jobs) || 0,
       icon: Briefcase,
-      color: 'from-blue-500 to-blue-600'
+      color: 'from-primary-500 to-primary-600'
     },
     {
       name: 'Open Jobs',
@@ -271,7 +374,7 @@ const AdminDashboard = () => {
       name: 'Total Candidates',
       value: Number(dashboardData?.total_candidates) || 0,
       icon: Users,
-      color: 'from-green-500 to-emerald-500'
+      color: 'from-success-500 to-emerald-500'
     },
   ]
   
@@ -279,9 +382,9 @@ const AdminDashboard = () => {
     <div className="space-y-8">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.3 }}
         className="flex items-center justify-between"
       >
         <div>
@@ -292,134 +395,145 @@ const AdminDashboard = () => {
 
       {/* Filters Section */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="card p-6"
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="flex items-center justify-between p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/20"
       >
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="h-5 w-5 text-slate-600" />
-          <h3 className="text-lg font-semibold text-slate-900">Dashboard Filters</h3>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 bg-pastel-blue/30 rounded-lg">
+              <Filter className="h-4 w-4 text-primary-600" />
+            </div>
+            <span className="text-sm font-semibold text-slate-700">Filters:</span>
+          </div>
+          
           {/* Report Type Filter */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Report Type
-            </label>
-            <select
-              value={filters.reportType}
-              onChange={(e) => handleFilterChange('reportType', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">All Time</option>
-              <option value="weekly">Weekly (Last 7 days)</option>
-              <option value="monthly">Monthly (Last 30 days)</option>
-              <option value="custom">Custom Range</option>
-            </select>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-slate-600">Report:</label>
+            <div className="relative">
+              <select
+                value={filters.reportType}
+                onChange={(e) => handleFilterChange('reportType', e.target.value)}
+                className="px-3 py-1.5 pr-8 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 appearance-none cursor-pointer"
+              >
+                <option value="">All Time</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="custom">Custom</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* HR Filter */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              HR Management
-            </label>
-            <select
-              value={filters.hrId}
-              onChange={(e) => handleFilterChange('hrId', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">All HR</option>
-              {hrUsers.map((hr) => (
-                <option key={hr.id} value={hr.id}>
-                  {hr.name}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-slate-600">HR:</label>
+            <div className="relative">
+              <select
+                value={filters.hrId}
+                onChange={(e) => handleFilterChange('hrId', e.target.value)}
+                className="px-3 py-1.5 pr-8 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 appearance-none cursor-pointer"
+              >
+                <option value="">All HR</option>
+                {hrUsers.map((hr) => (
+                  <option key={hr.id} value={hr.id}>
+                    {hr.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
 
-          {/* Custom Start Date */}
+          {/* Custom Date Range */}
           {filters.reportType === 'custom' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={filters.customStartDate}
-                onChange={(e) => handleFilterChange('customStartDate', e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-          )}
-
-          {/* Custom End Date */}
-          {filters.reportType === 'custom' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                End Date
-              </label>
-              <input
-                type="date"
-                value={filters.customEndDate}
-                onChange={(e) => handleFilterChange('customEndDate', e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
+            <>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-slate-600">From:</label>
+                <input
+                  type="date"
+                  value={filters.customStartDate}
+                  onChange={(e) => handleFilterChange('customStartDate', e.target.value)}
+                  className="px-3 py-1.5 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-slate-600">To:</label>
+                <input
+                  type="date"
+                  value={filters.customEndDate}
+                  onChange={(e) => handleFilterChange('customEndDate', e.target.value)}
+                  className="px-3 py-1.5 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
+                />
+              </div>
+            </>
           )}
         </div>
 
-        {/* Filter Actions */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+        {/* Active Filters & Clear Button */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {filters.reportType && (
-              <span className="badge badge-primary">
-                {filters.reportType === 'weekly' ? 'Weekly Report' :
-                 filters.reportType === 'monthly' ? 'Monthly Report' :
-                 filters.reportType === 'custom' ? 'Custom Range' : ''}
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-pastel-blue/20 text-primary-700">
+                {filters.reportType === 'weekly' ? 'Weekly' :
+                 filters.reportType === 'monthly' ? 'Monthly' :
+                 filters.reportType === 'custom' ? 'Custom' : ''}
               </span>
             )}
             {filters.hrId && (
-              <span className="badge badge-secondary">
-                {hrUsers.find(hr => hr.id === filters.hrId)?.name || 'HR Selected'}
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-pastel-green/20 text-success-700">
+                {hrUsers.find(hr => hr.id === filters.hrId)?.name || 'HR'}
               </span>
             )}
           </div>
           
-          <button
-            onClick={clearFilters}
-            className="btn-ghost text-sm text-slate-600 hover:text-slate-800"
-          >
-            Clear Filters
-          </button>
+          {(filters.reportType || filters.hrId) && (
+            <button
+              onClick={clearFilters}
+              className="inline-flex items-center px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 hover:bg-white/50 rounded-md transition-all duration-200"
+            >
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear
+            </button>
+          )}
         </div>
       </motion.div>
 
       {/* HR Performance Section */}
       {dashboardData.hr_performance && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="card p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200"
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="card p-6 bg-gradient-to-r from-pastel-blue to-pastel-cyan border border-primary-200"
         >
           <div className="flex items-center gap-2 mb-4">
-            <UserCheck className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-slate-900">
+            <UserCheck className="h-5 w-5 text-primary-600" />
+            <h3 className="text-lg font-semibold text-slate-800">
               HR Performance: {dashboardData.hr_performance.hr_name}
             </h3>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-primary-600">
                 {dashboardData.hr_performance.total_assigned_jobs}
               </div>
               <div className="text-sm text-slate-600">Total Assigned Jobs</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-success-600">
                 {dashboardData.hr_performance.open_jobs}
               </div>
               <div className="text-sm text-slate-600">Open Jobs</div>
@@ -445,9 +559,9 @@ const AdminDashboard = () => {
         {stats.map((stat, index) => (
           <motion.div
             key={stat.name}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
+            transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
           >
             <AnimatedDashboardCard
               color={stat.color}
@@ -463,16 +577,16 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Job Status Chart */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.3, delay: 0.4 }}
         >
           <div 
-            className="card p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+            className="card p-6 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.01]"
             onClick={handleJobsChartClick}
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Job Status Distribution</h3>
+              <h3 className="text-xl font-bold text-slate-800">Job Status Distribution</h3>
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
                 <span>
@@ -519,18 +633,18 @@ const AdminDashboard = () => {
 
                  {/* HR Contribution Chart */}
          <motion.div
-           initial={{ opacity: 0, y: 20 }}
+           initial={{ opacity: 0, y: 10 }}
            animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 0.5, delay: 0.5 }}
+           transition={{ duration: 0.3, delay: 0.5 }}
          >
            <div 
-             className="card p-6 cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+             className="card p-6 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.01]"
              onClick={handleHrContributionClick}
            >
              <div className="flex items-center justify-between mb-6">
-               <h3 className="text-xl font-bold text-slate-900">HR Contribution</h3>
+               <h3 className="text-xl font-bold text-slate-800">HR Contribution</h3>
                <div className="flex items-center gap-2 text-sm text-slate-500">
-                 <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                 <div className="w-3 h-3 bg-success-500 rounded-full"></div>
                  <span>All Time</span>
                </div>
              </div>

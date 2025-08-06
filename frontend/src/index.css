@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 text-slate-900 font-sans;
+    @apply bg-gradient-to-br from-pastel-blue via-pastel-cyan to-pastel-indigo text-slate-800 font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
@@ -16,164 +16,207 @@
 }
 
 @layer components {
-  /* Modern Button Styles */
+  /* iOS Pointer Animations */
+  .ios-pointer {
+    @apply cursor-pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform-origin: center;
+  }
+
+  .ios-pointer:hover {
+    transform: scale(1.02);
+  }
+
+  .ios-pointer:active {
+    transform: scale(0.98);
+    transition: all 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .ios-tap {
+    @apply cursor-pointer;
+    transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .ios-tap:active {
+    transform: scale(0.96);
+  }
+
+  .ios-spring {
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .ios-spring:hover {
+    transform: translateY(-2px);
+  }
+
+  .ios-bounce {
+    transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .ios-bounce:hover {
+    transform: scale(1.05);
+  }
+
+  .ios-bounce:active {
+    transform: scale(0.95);
+  }
+
+  /* Modern Button Styles with iOS Animations */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white 
-           bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 
-           rounded-xl shadow-soft hover:shadow-medium transition-all duration-300 transform hover:scale-105 
+           bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 
+           rounded-xl shadow-soft hover:shadow-medium transition-all duration-200 transform hover:scale-[1.02] 
            focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 
-           disabled:cursor-not-allowed disabled:transform-none;
+           disabled:cursor-not-allowed disabled:transform-none ios-pointer;
   }
   
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-slate-700 
-           bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl 
-           shadow-soft hover:shadow-medium transition-all duration-300 transform hover:scale-105 
-           focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2;
+           bg-white hover:bg-pastel-blue border border-slate-200 hover:border-primary-200 rounded-xl 
+           shadow-soft hover:shadow-medium transition-all duration-200 transform hover:scale-[1.02] 
+           focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ios-pointer;
   }
 
   .btn-success {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white 
-           bg-gradient-to-r from-success-600 to-success-700 hover:from-success-700 hover:to-success-800 
-           rounded-xl shadow-soft hover:shadow-medium transition-all duration-300 transform hover:scale-105 
-           focus:outline-none focus:ring-2 focus:ring-success-500 focus:ring-offset-2;
+           bg-gradient-to-r from-success-500 to-success-600 hover:from-success-600 hover:to-success-700 
+           rounded-xl shadow-soft hover:shadow-medium transition-all duration-200 transform hover:scale-[1.02] 
+           focus:outline-none focus:ring-2 focus:ring-success-500 focus:ring-offset-2 ios-pointer;
   }
 
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white 
-           bg-gradient-to-r from-danger-600 to-danger-700 hover:from-danger-700 hover:to-danger-800 
-           rounded-xl shadow-soft hover:shadow-medium transition-all duration-300 transform hover:scale-105 
-           focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2;
+           bg-gradient-to-r from-danger-500 to-danger-600 hover:from-danger-600 hover:to-danger-700 
+           rounded-xl shadow-soft hover:shadow-medium transition-all duration-200 transform hover:scale-[1.02] 
+           focus:outline-none focus:ring-2 focus:ring-danger-500 focus:ring-offset-2 ios-pointer;
   }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 
-           hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-200 
-           focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2;
+           hover:text-slate-900 hover:bg-pastel-blue rounded-lg transition-all duration-200 
+           focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ios-tap;
   }
 
-  /* Modern Card Styles */
+  /* Modern Card Styles with iOS Animations */
   .card {
-    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-soft border border-white/20 
-           hover:shadow-medium transition-all duration-300 hover:scale-[1.02];
+    @apply bg-white/90 backdrop-blur-sm rounded-2xl shadow-soft border border-white/40 
+           hover:shadow-medium transition-all duration-200 hover:scale-[1.01] ios-spring;
   }
 
   .card-glass {
-    @apply bg-white/60 backdrop-blur-md rounded-2xl shadow-soft border border-white/40 
-           hover:shadow-medium transition-all duration-300;
+    @apply bg-white/70 backdrop-blur-md rounded-2xl shadow-soft border border-white/50 
+           hover:shadow-medium transition-all duration-200 ios-spring;
   }
 
   .card-gradient {
-    @apply bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-sm rounded-2xl 
-           shadow-soft border border-white/30 hover:shadow-medium transition-all duration-300;
+    @apply bg-gradient-to-br from-white/95 to-white/85 backdrop-blur-sm rounded-2xl 
+           shadow-soft border border-white/40 hover:shadow-medium transition-all duration-200 ios-spring;
   }
 
-  /* Modern Input Styles */
+  /* Modern Input Styles with iOS Animations */
   .input-field {
-    @apply w-full px-4 py-3 text-sm bg-white/80 backdrop-blur-sm border border-slate-200 
+    @apply w-full px-4 py-3 text-sm bg-white/90 backdrop-blur-sm border border-slate-200 
            rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 
-           transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300;
+           transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 ios-spring;
   }
 
   .input-field-error {
-    @apply w-full px-4 py-3 text-sm bg-white/80 backdrop-blur-sm border border-danger-300 
+    @apply w-full px-4 py-3 text-sm bg-white/90 backdrop-blur-sm border border-danger-300 
            rounded-xl focus:outline-none focus:ring-2 focus:ring-danger-500 focus:border-danger-500 
-           transition-all duration-200 placeholder:text-slate-400;
+           transition-all duration-200 placeholder:text-slate-400 ios-spring;
   }
 
-  /* Modern Select Styles */
+  /* Modern Select Styles with iOS Animations */
   .select-field {
-    @apply w-full px-4 py-3 text-sm bg-white/80 backdrop-blur-sm border border-slate-200 
+    @apply w-full px-4 py-3 text-sm bg-white/90 backdrop-blur-sm border border-slate-200 
            rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 
-           transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer;
+           transition-all duration-200 hover:border-slate-300 appearance-none cursor-pointer ios-spring;
   }
 
-  /* Modern Table Styles */
+  /* Modern Table Styles with iOS Animations */
   .table-modern {
-    @apply w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-soft border border-white/20 overflow-hidden;
+    @apply w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-soft border border-white/40 overflow-hidden;
   }
 
   .table-modern thead {
-    @apply bg-gradient-to-r from-slate-50 to-slate-100/50;
+    @apply bg-gradient-to-r from-pastel-blue to-pastel-cyan;
   }
 
   .table-modern th {
-    @apply px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider 
-           border-b border-slate-200/50;
+    @apply px-6 py-4 text-left text-sm font-semibold text-slate-700;
   }
 
   .table-modern td {
-    @apply px-6 py-4 text-sm text-slate-900 border-b border-slate-100/50;
+    @apply px-6 py-4 text-sm text-slate-800 border-b border-white/40;
   }
 
   .table-modern tbody tr {
-    @apply hover:bg-slate-50/50 transition-colors duration-200;
+    @apply hover:bg-pastel-blue/30 transition-colors duration-200 ios-tap;
   }
 
   .table-modern tbody tr:last-child td {
     @apply border-b-0;
   }
 
-  /* Status Badge Styles */
+  /* Badge Styles with iOS Animations */
   .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ios-bounce;
   }
 
   .badge-success {
-    @apply bg-success-100 text-success-700 border border-success-200;
+    @apply bg-pastel-green text-success-700;
   }
 
   .badge-warning {
-    @apply bg-warning-100 text-warning-700 border border-warning-200;
+    @apply bg-pastel-yellow text-warning-700;
   }
 
   .badge-danger {
-    @apply bg-danger-100 text-danger-700 border border-danger-200;
+    @apply bg-slate-200 text-slate-700;
   }
 
   .badge-info {
-    @apply bg-info-100 text-info-700 border border-info-200;
+    @apply bg-pastel-cyan text-info-700;
   }
 
   .badge-secondary {
-    @apply bg-slate-100 text-slate-700 border border-slate-200;
+    @apply bg-slate-200 text-slate-700;
   }
 
   .badge-primary {
-    @apply bg-primary-100 text-primary-700 border border-primary-200;
+    @apply bg-pastel-blue text-primary-700;
   }
 
-  /* Loading Spinner */
+  /* Spinner with iOS Animation */
   .spinner {
-    @apply animate-spin rounded-full border-2 border-slate-200 border-t-primary-600;
+    @apply animate-spin rounded-full border-2 border-slate-200 border-t-primary-500;
+    animation: spin 1s linear infinite;
   }
 
-  /* Glass Morphism */
+  /* Glass Effects with iOS Animations */
   .glass {
-    @apply bg-white/20 backdrop-blur-md border border-white/30;
+    @apply bg-white/30 backdrop-blur-sm border border-white/50 ios-spring;
   }
 
   .glass-strong {
-    @apply bg-white/40 backdrop-blur-lg border border-white/50;
+    @apply bg-white/50 backdrop-blur-md border border-white/60 ios-spring;
   }
 
-  /* Gradient Text */
+  /* Gradient Text with iOS Animation */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary-600 to-indigo-600 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary-600 to-info-600 bg-clip-text text-transparent ios-spring;
   }
 
-  /* Hover Effects */
+  /* Hover Effects with iOS Animations */
   .hover-lift {
-    @apply transition-all duration-300 hover:transform hover:scale-105 hover:shadow-medium;
+    @apply transition-all duration-200 hover:shadow-medium ios-spring;
   }
 
   .hover-glow {
-    @apply transition-all duration-300 hover:shadow-glow;
+    @apply transition-all duration-200 hover:shadow-glow ios-spring;
   }
-}
 
-@layer utilities {
-  /* Custom animations */
+  /* iOS-style Animations */
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -184,7 +227,7 @@
       transform: translateY(0);
     }
   }
-  
+
   @keyframes slideInFromLeft {
     from {
       opacity: 0;
@@ -195,7 +238,7 @@
       transform: translateX(0);
     }
   }
-  
+
   @keyframes slideInFromRight {
     from {
       opacity: 0;
@@ -206,7 +249,7 @@
       transform: translateX(0);
     }
   }
-  
+
   @keyframes scaleIn {
     from {
       opacity: 0;
@@ -224,6 +267,7 @@
       transform: scale(0.3);
     }
     50% {
+      opacity: 1;
       transform: scale(1.05);
     }
     70% {
@@ -234,74 +278,78 @@
       transform: scale(1);
     }
   }
-  
+
+  /* Animation Classes with iOS Timing */
   .animate-fadeIn {
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  
+
   .animate-slideInLeft {
-    animation: slideInFromLeft 0.5s ease-out;
+    animation: slideInFromLeft 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  
+
   .animate-slideInRight {
-    animation: slideInFromRight 0.5s ease-out;
+    animation: slideInFromRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
-  
+
   .animate-scaleIn {
-    animation: scaleIn 0.3s ease-out;
+    animation: scaleIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   .animate-bounceIn {
-    animation: bounceIn 0.6s ease-out;
+    animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
-  
-  /* Smooth scrolling */
+
+  /* iOS-style Scrollbar */
   html {
-    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
   }
-  
-  /* Custom scrollbar */
+
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
-  
+
   ::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
+    background: transparent;
+    border-radius: 3px;
   }
-  
+
   ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-    transition: background 0.2s;
+    background: rgba(148, 163, 184, 0.5);
+    border-radius: 3px;
+    transition: background 0.2s ease;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: rgba(148, 163, 184, 0.7);
   }
 
-  /* Text selection */
+  /* iOS-style Selection */
   ::selection {
-    @apply bg-primary-100 text-primary-900;
+    background: rgba(59, 130, 246, 0.2);
+    color: inherit;
   }
 
-  /* Focus styles */
+  /* Focus Ring with iOS Style */
   .focus-ring {
     @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
   }
 
-  /* Responsive text */
+  /* Responsive Text with iOS Animation */
   .text-responsive {
-    @apply text-sm sm:text-base lg:text-lg;
+    @apply text-sm sm:text-base md:text-lg ios-spring;
   }
 
-  /* Aspect ratios */
+  /* Aspect Ratios with iOS Animation */
   .aspect-video {
+    @apply relative w-full ios-spring;
     aspect-ratio: 16 / 9;
   }
 
   .aspect-square {
+    @apply relative w-full ios-spring;
     aspect-ratio: 1 / 1;
   }
 } 
