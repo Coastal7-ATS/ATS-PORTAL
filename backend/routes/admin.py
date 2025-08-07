@@ -109,7 +109,13 @@ async def add_jobs_bulk(jobs_data: List[dict], current_user: dict = Depends(get_
             status = "open"
         job_data["status"] = status
         job_data["created_at"] = datetime.now(timezone.utc)
-        job_data["salary_package"] = job_data.get("ctc", "")
+        # Handle salary package - use actual_salary if provided, otherwise use ctc for backward compatibility
+        if "actual_salary" in job_data:
+            job_data["salary_package"] = job_data["actual_salary"]
+        elif "ctc" in job_data:
+            job_data["salary_package"] = job_data["ctc"]
+        else:
+            job_data["salary_package"] = ""
         job_data["source_company"] = "CSV Upload"
         
         # Set default dates if not provided
@@ -557,6 +563,30 @@ async def get_hr_contribution(current_user: dict = Depends(get_current_admin_use
         })
     
     return hr_contribution
+
+@router.get("/salary-bands")
+async def get_salary_bands(current_user: dict = Depends(get_current_admin_user)):
+    db = await get_database()
+    
+    try:
+        salary_bands = await db.recruitment_portal.salary_bands.find({}).sort("band", 1).to_list(length=100)
+        
+        # Format the data for frontend
+        formatted_bands = []
+        for band in salary_bands:
+            formatted_bands.append({
+                "band": band["band"],
+                "experience_range": band.get("experience_range"),
+                "rates": {
+                    "standard": band["standard"],
+                    "ra1": band["ra1"],
+                    "ra2": band["ra2"]
+                }
+            })
+        
+        return formatted_bands
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching salary bands: {str(e)}")
 
 @router.get("/hr-report")
 async def download_hr_report(

@@ -24,6 +24,7 @@ const AdminJobs = () => {
   const [viewJob, setViewJob] = useState(null)
   const [editJob, setEditJob] = useState(null)
   const [hrUsers, setHrUsers] = useState([])
+  const [salaryBands, setSalaryBands] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState({
     status: '',
@@ -39,7 +40,7 @@ const AdminJobs = () => {
     const fetchAll = async () => {
       setLoading(true)
       try {
-        await Promise.all([fetchJobs(), fetchHrUsers()])
+        await Promise.all([fetchJobs(), fetchHrUsers(), fetchSalaryBands()])
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -55,6 +56,15 @@ const AdminJobs = () => {
       setHrUsers(response.data)
     } catch (error) {
       console.error('Error fetching HR users:', error)
+    }
+  }
+
+  const fetchSalaryBands = async () => {
+    try {
+      const response = await api.get('/admin/salary-bands')
+      setSalaryBands(response.data)
+    } catch (error) {
+      console.error('Error fetching salary bands:', error)
     }
   }
 
@@ -376,9 +386,9 @@ const AdminJobs = () => {
               <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Job Details</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location & Package</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Timeline</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">CSA ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Salary Info</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location & Timeline</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Priority & CSA</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Assigned HR</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
@@ -407,17 +417,33 @@ const AdminJobs = () => {
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1 text-sm text-gray-700">
-                          <MapPin className="h-3 w-3 text-gray-400" />
-                          <span>{job.location || 'Remote'}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-700">
                           <DollarSign className="h-3 w-3 text-gray-400" />
                           <span>{job.salary_package || 'Not specified'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-700">
+                          <User className="h-3 w-3 text-gray-400" />
+                          <span>{job.salary_band || 'Not specified'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-700">
+                          <MapPin className="h-3 w-3 text-gray-400" />
+                          <span>{job.salary_rate ? job.salary_rate.charAt(0).toUpperCase() + job.salary_rate.slice(1) : 'Not specified'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <DollarSign className="h-3 w-3 text-gray-400" />
+                          <span>Profit: {job.profit_percentage ? `${job.profit_percentage}%` : 'Not specified'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <DollarSign className="h-3 w-3 text-gray-400" />
+                          <span>Expected: {job.expected_package || 'Not specified'}</span>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <MapPin className="h-3 w-3 text-gray-400" />
+                          <span>{job.location || 'Remote'}</span>
+                        </div>
                         <div className="flex items-center gap-1 text-xs text-gray-600">
                           <Calendar className="h-3 w-3 text-gray-400" />
                           <span>Start: {job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}</span>
@@ -429,9 +455,16 @@ const AdminJobs = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {job.csa_id || 'N/A'}
-                      </span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <User className="h-3 w-3 text-gray-400" />
+                          <span>{job.priority ? job.priority.charAt(0).toUpperCase() + job.priority.slice(1) : 'Not specified'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <User className="h-3 w-3 text-gray-400" />
+                          <span>{job.csa_id || 'N/A'}</span>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -512,7 +545,12 @@ const AdminJobs = () => {
                   <Detail label="Title" value={viewJob.title} />
                   <Detail label="Location" value={viewJob.location} />
                   <Detail label="CSA ID" value={viewJob.csa_id} />
-                  <Detail label="CTC" value={viewJob.salary_package} />
+                  <Detail label="Salary Band" value={viewJob.salary_band || 'Not specified'} />
+                  <Detail label="Rate Type" value={viewJob.salary_rate ? viewJob.salary_rate.charAt(0).toUpperCase() + viewJob.salary_rate.slice(1) : 'Not specified'} />
+                  <Detail label="Actual Salary" value={viewJob.salary_package || 'Not specified'} />
+                  <Detail label="Profit Percentage" value={viewJob.profit_percentage ? `${viewJob.profit_percentage}%` : 'Not specified'} />
+                  <Detail label="Expected Package" value={viewJob.expected_package || 'Not specified'} />
+                  <Detail label="Priority" value={viewJob.priority ? viewJob.priority.charAt(0).toUpperCase() + viewJob.priority.slice(1) : 'Not specified'} />
                   <Detail label="Start Date" value={viewJob.start_date ? new Date(viewJob.start_date).toLocaleDateString() : 'N/A'} />
                   <Detail label="End Date" value={viewJob.end_date ? new Date(viewJob.end_date).toLocaleDateString() : 'N/A'} />
                   <Detail label="Assigned To" value={viewJob.assigned_hr_name || 'Unassigned'} />
@@ -565,6 +603,7 @@ const AdminJobs = () => {
               <EditJobForm
                 job={editJob}
                 hrUsers={hrUsers}
+                salaryBands={salaryBands}
                 onUpdate={handleUpdateJob}
                 onCancel={() => setEditJob(null)}
               />
@@ -584,12 +623,17 @@ const Detail = ({ label, value }) => (
   </div>
 )
 
-const EditJobForm = ({ job, hrUsers, onUpdate, onCancel }) => {
+const EditJobForm = ({ job, hrUsers, salaryBands, onUpdate, onCancel }) => {
   const [formData, setFormData] = useState({
     title: job.title || '',
     description: job.description || '',
     location: job.location || '',
     salary_package: job.salary_package || '',
+    salary_band: job.salary_band || '',
+    salary_rate: job.salary_rate || '',
+    profit_percentage: job.profit_percentage || '',
+    expected_package: job.expected_package || '',
+    priority: job.priority || '',
     status: job.status || 'open',
     assigned_hr: job.assigned_hr || '',
     start_date: job.start_date || '',
@@ -611,6 +655,86 @@ const EditJobForm = ({ job, hrUsers, onUpdate, onCancel }) => {
       ...formData,
       [name]: value
     })
+  }
+
+  // Calculate actual salary based on band and rate selection
+  const calculateActualSalary = (band, rate) => {
+    if (!band || !rate) return ''
+    
+    const selectedBand = salaryBands.find(b => b.band === band)
+    if (!selectedBand) return ''
+    
+    const rateValue = selectedBand.rates[rate]
+    if (!rateValue) return ''
+    
+    return (rateValue * 1920).toString()
+  }
+
+  // Calculate expected package based on actual salary and profit percentage
+  const calculateExpectedPackage = (actualSalary, profitPercentage) => {
+    if (!actualSalary || !profitPercentage) return ''
+    
+    const actual = parseFloat(actualSalary)
+    const profit = parseFloat(profitPercentage)
+    
+    if (isNaN(actual) || isNaN(profit)) return ''
+    
+    const expected = actual - (actual * (profit / 100))
+    return expected.toString()
+  }
+
+  // Handle salary band change
+  const handleSalaryBandChange = (e) => {
+    const band = e.target.value
+    const newFormData = { ...formData, salary_band: band }
+    
+    // Recalculate salary if rate is also selected
+    if (formData.salary_rate) {
+      const newSalary = calculateActualSalary(band, formData.salary_rate)
+      newFormData.salary_package = newSalary
+      
+      // Recalculate expected package if profit percentage is also selected
+      if (formData.profit_percentage) {
+        const newExpected = calculateExpectedPackage(newSalary, formData.profit_percentage)
+        newFormData.expected_package = newExpected
+      }
+    }
+    
+    setFormData(newFormData)
+  }
+
+  // Handle salary rate change
+  const handleSalaryRateChange = (e) => {
+    const rate = e.target.value
+    const newFormData = { ...formData, salary_rate: rate }
+    
+    // Recalculate salary if band is also selected
+    if (formData.salary_band) {
+      const newSalary = calculateActualSalary(formData.salary_band, rate)
+      newFormData.salary_package = newSalary
+      
+      // Recalculate expected package if profit percentage is also selected
+      if (formData.profit_percentage) {
+        const newExpected = calculateExpectedPackage(newSalary, formData.profit_percentage)
+        newFormData.expected_package = newExpected
+      }
+    }
+    
+    setFormData(newFormData)
+  }
+
+  // Handle profit percentage change
+  const handleProfitPercentageChange = (e) => {
+    const percentage = e.target.value
+    const newFormData = { ...formData, profit_percentage: percentage }
+    
+    // Recalculate expected package if actual salary is also selected
+    if (formData.salary_package) {
+      const newExpected = calculateExpectedPackage(formData.salary_package, percentage)
+      newFormData.expected_package = newExpected
+    }
+    
+    setFormData(newFormData)
   }
 
   return (
@@ -640,14 +764,90 @@ const EditJobForm = ({ job, hrUsers, onUpdate, onCancel }) => {
         </div>
         
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">CTC</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Salary Band</label>
+          <select
+            name="salary_band"
+            value={formData.salary_band}
+            onChange={handleSalaryBandChange}
+            className="select-field"
+          >
+            <option value="">Select salary band</option>
+            {salaryBands.map(band => (
+              <option key={band.band} value={band.band}>
+                {band.band}{band.experience_range ? ` (${band.experience_range})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Rate Type</label>
+          <select
+            name="salary_rate"
+            value={formData.salary_rate}
+            onChange={handleSalaryRateChange}
+            className="select-field"
+          >
+            <option value="">Select rate type</option>
+            <option value="standard">Standard</option>
+            <option value="ra1">RA1</option>
+            <option value="ra2">RA2</option>
+          </select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Actual Salary</label>
           <input
             type="text"
             name="salary_package"
             value={formData.salary_package}
             onChange={handleChange}
             className="input-field"
+            readOnly
+            placeholder="Calculated automatically"
           />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Profit Percentage</label>
+          <input
+            type="number"
+            name="profit_percentage"
+            value={formData.profit_percentage}
+            onChange={handleProfitPercentageChange}
+            className="input-field"
+            placeholder="e.g., 15"
+            min="0"
+            max="100"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Expected Package</label>
+          <input
+            type="text"
+            name="expected_package"
+            value={formData.expected_package}
+            onChange={handleChange}
+            className="input-field"
+            readOnly
+            placeholder="Calculated automatically"
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
+          <select
+            name="priority"
+            value={formData.priority}
+            onChange={handleChange}
+            className="select-field"
+          >
+            <option value="">Select priority</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
         </div>
         
         <div>

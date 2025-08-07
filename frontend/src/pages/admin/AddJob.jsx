@@ -38,6 +38,7 @@ const AdminAddJob = () => {
   const [previewData, setPreviewData] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [hrUsers, setHrUsers] = useState([])
+  const [salaryBands, setSalaryBands] = useState([])
   const [loading, setLoading] = useState(true)
 
   // Manual form validation
@@ -52,26 +53,35 @@ const AdminAddJob = () => {
     title: '',
     description: '',
     location: '',
-    ctc: '',
+    actual_salary: '',
+    salary_band: '',
+    salary_rate: '',
+    profit_percentage: '',
+    expected_package: '',
+    priority: '',
     csa_id: '',
     start_date: '',
     end_date: '',
     assigned_hr: ''
   })
 
-  // Fetch HR users on mount
+  // Fetch HR users and salary bands on mount
   React.useEffect(() => {
-    const fetchHrUsers = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get('/admin/users')
-        setHrUsers(response.data)
+        const [hrResponse, salaryBandsResponse] = await Promise.all([
+          api.get('/admin/users'),
+          api.get('/admin/salary-bands')
+        ])
+        setHrUsers(hrResponse.data)
+        setSalaryBands(salaryBandsResponse.data)
       } catch (error) {
-        console.error('Error fetching HR users:', error)
+        console.error('Error fetching data:', error)
       } finally {
         setLoading(false)
       }
     }
-    fetchHrUsers()
+    fetchData()
   }, [])
 
   // CSV drop handler
@@ -90,6 +100,159 @@ const AdminAddJob = () => {
     accept: { 'text/csv': ['.csv'] },
     multiple: false
   })
+
+  // Calculate actual salary based on band and rate selection
+  const calculateActualSalary = (band, rate) => {
+    if (!band || !rate) return ''
+    
+    const selectedBand = salaryBands.find(b => b.band === band)
+    if (!selectedBand) return ''
+    
+    const rateValue = selectedBand.rates[rate]
+    if (!rateValue) return ''
+    
+    return (rateValue * 1920).toString()
+  }
+
+  // Calculate expected package based on actual salary and profit percentage
+  const calculateExpectedPackage = (actualSalary, profitPercentage) => {
+    if (!actualSalary || !profitPercentage) return ''
+    
+    const actual = parseFloat(actualSalary)
+    const profit = parseFloat(profitPercentage)
+    
+    if (isNaN(actual) || isNaN(profit)) return ''
+    
+    const expected = actual - (actual * (profit / 100))
+    return expected.toString()
+  }
+
+  // Handle salary band change
+  const handleSalaryBandChange = (name, value) => {
+    handleChange(name, value)
+    
+    // Recalculate salary if rate is also selected
+    if (manualForm.salary_rate) {
+      const newSalary = calculateActualSalary(value, manualForm.salary_rate)
+      handleChange('actual_salary', newSalary)
+      
+      // Recalculate expected package if profit percentage is also selected
+      if (manualForm.profit_percentage) {
+        const newExpected = calculateExpectedPackage(newSalary, manualForm.profit_percentage)
+        handleChange('expected_package', newExpected)
+      }
+    }
+  }
+
+  // Handle salary rate change
+  const handleSalaryRateChange = (name, value) => {
+    handleChange(name, value)
+    
+    // Recalculate salary if band is also selected
+    if (manualForm.salary_band) {
+      const newSalary = calculateActualSalary(manualForm.salary_band, value)
+      handleChange('actual_salary', newSalary)
+      
+      // Recalculate expected package if profit percentage is also selected
+      if (manualForm.profit_percentage) {
+        const newExpected = calculateExpectedPackage(newSalary, manualForm.profit_percentage)
+        handleChange('expected_package', newExpected)
+      }
+    }
+  }
+
+  // Handle profit percentage change
+  const handleProfitPercentageChange = (name, value) => {
+    handleChange(name, value)
+    
+    // Recalculate expected package if actual salary is also selected
+    if (manualForm.actual_salary) {
+      const newExpected = calculateExpectedPackage(manualForm.actual_salary, value)
+      handleChange('expected_package', newExpected)
+    }
+  }
+
+  // CSV salary band change handler
+  const handleCSVSalaryBandChange = (rowId, band) => {
+    setPreviewData(prev => ({
+      ...prev,
+      data: prev.data.map(row => {
+        if (row.id === rowId) {
+          const newRow = { ...row, salary_band: band }
+          // Recalculate salary if rate is also selected
+          if (row.salary_rate) {
+            const newSalary = calculateActualSalary(band, row.salary_rate)
+            newRow.actual_salary = newSalary
+            
+            // Recalculate expected package if profit percentage is also selected
+            if (row.profit_percentage) {
+              const newExpected = calculateExpectedPackage(newSalary, row.profit_percentage)
+              newRow.expected_package = newExpected
+            }
+          }
+          return newRow
+        }
+        return row
+      })
+    }))
+  }
+
+  // CSV salary rate change handler
+  const handleCSVSalaryRateChange = (rowId, rate) => {
+    setPreviewData(prev => ({
+      ...prev,
+      data: prev.data.map(row => {
+        if (row.id === rowId) {
+          const newRow = { ...row, salary_rate: rate }
+          // Recalculate salary if band is also selected
+          if (row.salary_band) {
+            const newSalary = calculateActualSalary(row.salary_band, rate)
+            newRow.actual_salary = newSalary
+            
+            // Recalculate expected package if profit percentage is also selected
+            if (row.profit_percentage) {
+              const newExpected = calculateExpectedPackage(newSalary, row.profit_percentage)
+              newRow.expected_package = newExpected
+            }
+          }
+          return newRow
+        }
+        return row
+      })
+    }))
+  }
+
+  // CSV profit percentage change handler
+  const handleCSVProfitPercentageChange = (rowId, percentage) => {
+    setPreviewData(prev => ({
+      ...prev,
+      data: prev.data.map(row => {
+        if (row.id === rowId) {
+          const newRow = { ...row, profit_percentage: percentage }
+          // Recalculate expected package if actual salary is also selected
+          if (row.actual_salary) {
+            const newExpected = calculateExpectedPackage(row.actual_salary, percentage)
+            newRow.expected_package = newExpected
+          }
+          return newRow
+        }
+        return row
+      })
+    }))
+  }
+
+  // CSV priority change handler
+  const handleCSVPriorityChange = (rowId, priority) => {
+    setPreviewData(prev => ({
+      ...prev,
+      data: prev.data.map(row => {
+        if (row.id === rowId) {
+          return { ...row, priority: priority }
+        }
+        return row
+      })
+    }))
+  }
 
   // CSV parsing
   const parseCSV = (file) => {
@@ -122,7 +285,12 @@ const AdminAddJob = () => {
         title: formData.title,
         description: formData.description,
         location: formData.location,
-        salary_package: formData.ctc,
+        salary_package: formData.actual_salary,
+        salary_band: formData.salary_band,
+        salary_rate: formData.salary_rate,
+        profit_percentage: formData.profit_percentage,
+        expected_package: formData.expected_package,
+        priority: formData.priority,
         csa_id: formData.csa_id,
         start_date: formData.start_date,
         end_date: formData.end_date,
@@ -148,7 +316,12 @@ const AdminAddJob = () => {
         title: row.title,
         description: row.description,
         location: row.location,
-        ctc: row.ctc,
+        actual_salary: row.actual_salary,
+        salary_band: row.salary_band,
+        salary_rate: row.salary_rate,
+        profit_percentage: row.profit_percentage,
+        expected_package: row.expected_package,
+        priority: row.priority,
         csa_id: row.csa_id,
         start_date: row.start_date,
         end_date: row.end_date,
@@ -167,7 +340,7 @@ const AdminAddJob = () => {
   // CSV header validation
   const validateHeaders = () => {
     if (!previewData) return false
-    const requiredHeaders = ['title', 'description', 'location', 'ctc']
+    const requiredHeaders = ['title', 'description', 'location']
     const missing = requiredHeaders.filter(header =>
       !previewData.headers.some(h => h.toLowerCase().includes(header.toLowerCase()))
     )
@@ -278,7 +451,12 @@ const AdminAddJob = () => {
                   description: { required: true, message: 'Job description is required' },
                   location: { required: true, message: 'Location is required' },
                   csa_id: { required: true, message: 'CSA ID is required' },
-                  ctc: { required: true, message: 'CTC is required' },
+                  salary_band: { required: true, message: 'Salary band is required' },
+                  salary_rate: { required: true, message: 'Rate type is required' },
+                  actual_salary: { required: true, message: 'Actual salary is required' },
+                  profit_percentage: { required: true, message: 'Profit percentage is required' },
+                  expected_package: { required: true, message: 'Expected package is required' },
+                  priority: { required: true, message: 'Priority is required' },
                   start_date: { required: true, message: 'Start date is required' },
                   end_date: { required: true, message: 'End date is required' },
                   assigned_hr: { required: true, message: 'Please assign to an HR' }
@@ -287,90 +465,164 @@ const AdminAddJob = () => {
               className="space-y-6"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ValidatedInput
-                  name="title"
-                  label="Job Title"
-                  value={manualForm.title}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.title}
-                  touched={touched.title}
-                  placeholder="e.g., Software Engineer"
-                />
-                <ValidatedInput
-                  name="location"
-                  label="Location"
-                  value={manualForm.location}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.location}
-                  touched={touched.location}
-                  placeholder="e.g., Bangalore"
-                />
-                <ValidatedInput
-                  name="csa_id"
-                  label="CSA ID"
-                  value={manualForm.csa_id}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.csa_id}
-                  touched={touched.csa_id}
-                  placeholder="6 character alphanumeric"
-                  maxLength={6}
-                />
-                <ValidatedInput
-                  name="ctc"
-                  label="CTC (Cost to Company)"
-                  value={manualForm.ctc}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.ctc}
-                  touched={touched.ctc}
-                  placeholder="e.g., 8-12 LPA"
-                />
-                <ValidatedInput
-                  name="start_date"
-                  label="Start Date"
-                  type="date"
-                  value={manualForm.start_date}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.start_date}
-                  touched={touched.start_date}
-                />
-                <ValidatedInput
-                  name="end_date"
-                  label="End Date"
-                  type="date"
-                  value={manualForm.end_date}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.end_date}
-                  touched={touched.end_date}
-                />
-                <ValidatedSelect
-                  name="assigned_hr"
-                  label="Assign to HR"
-                  options={hrOptions}
-                  value={manualForm.assigned_hr}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  error={errors.assigned_hr}
-                  touched={touched.assigned_hr}
-                />
+                                 <ValidatedInput
+                   name="title"
+                   label="Job Title"
+                   value={manualForm.title}
+                   onChange={(name, value) => handleChange(name, value)}
+                   onBlur={handleBlur}
+                   error={errors.title}
+                   touched={touched.title}
+                   placeholder="e.g., Software Engineer"
+                 />
+                                 <ValidatedInput
+                   name="location"
+                   label="Location"
+                   value={manualForm.location}
+                   onChange={(name, value) => handleChange(name, value)}
+                   onBlur={handleBlur}
+                   error={errors.location}
+                   touched={touched.location}
+                   placeholder="e.g., Bangalore"
+                 />
+                 <ValidatedInput
+                   name="csa_id"
+                   label="CSA ID"
+                   value={manualForm.csa_id}
+                   onChange={(name, value) => handleChange(name, value)}
+                   onBlur={handleBlur}
+                   error={errors.csa_id}
+                   touched={touched.csa_id}
+                   placeholder="6 character alphanumeric"
+                   maxLength={6}
+                 />
+                                 <ValidatedSelect
+                   name="salary_band"
+                   label="Salary Band"
+                   options={[
+                     { value: '', label: 'Select salary band' },
+                     ...salaryBands.map(band => ({
+                       value: band.band,
+                       label: `${band.band}${band.experience_range ? ` (${band.experience_range})` : ''}`
+                     }))
+                   ]}
+                   value={manualForm.salary_band}
+                   onChange={handleSalaryBandChange}
+                   onBlur={handleBlur}
+                   error={errors.salary_band}
+                   touched={touched.salary_band}
+                   placeholder="Select salary band"
+                 />
+                                 <ValidatedSelect
+                   name="salary_rate"
+                   label="Rate Type"
+                   options={[
+                     { value: '', label: 'Select rate type' },
+                     { value: 'standard', label: 'Standard' },
+                     { value: 'ra1', label: 'RA1' },
+                     { value: 'ra2', label: 'RA2' }
+                   ]}
+                   value={manualForm.salary_rate}
+                   onChange={handleSalaryRateChange}
+                   onBlur={handleBlur}
+                   error={errors.salary_rate}
+                   touched={touched.salary_rate}
+                   placeholder="Select rate type"
+                 />
+                                 <ValidatedInput
+                   name="actual_salary"
+                   label="Actual Salary"
+                   value={manualForm.actual_salary}
+                   onChange={(name, value) => handleChange(name, value)}
+                   onBlur={handleBlur}
+                   error={errors.actual_salary}
+                   touched={touched.actual_salary}
+                   placeholder="Calculated automatically"
+                   readOnly
+                 />
+                 <ValidatedInput
+                   name="profit_percentage"
+                   label="Profit Percentage"
+                   value={manualForm.profit_percentage}
+                   onChange={handleProfitPercentageChange}
+                   onBlur={handleBlur}
+                   error={errors.profit_percentage}
+                   touched={touched.profit_percentage}
+                   placeholder="e.g., 15"
+                   type="number"
+                   min="0"
+                   max="100"
+                 />
+                 <ValidatedInput
+                   name="expected_package"
+                   label="Expected Package"
+                   value={manualForm.expected_package}
+                   onChange={(name, value) => handleChange(name, value)}
+                   onBlur={handleBlur}
+                   error={errors.expected_package}
+                   touched={touched.expected_package}
+                   placeholder="Calculated automatically"
+                   readOnly
+                 />
+                 <ValidatedInput
+                   name="start_date"
+                   label="Start Date"
+                   type="date"
+                   value={manualForm.start_date}
+                   onChange={(name, value) => handleChange(name, value)}
+                   onBlur={handleBlur}
+                   error={errors.start_date}
+                   touched={touched.start_date}
+                 />
+                 <ValidatedInput
+                   name="end_date"
+                   label="End Date"
+                   type="date"
+                   value={manualForm.end_date}
+                   onChange={(name, value) => handleChange(name, value)}
+                   onBlur={handleBlur}
+                   error={errors.end_date}
+                   touched={touched.end_date}
+                 />
+                 <ValidatedSelect
+                   name="priority"
+                   label="Priority"
+                   options={[
+                     { value: '', label: 'Select priority' },
+                     { value: 'low', label: 'Low' },
+                     { value: 'medium', label: 'Medium' },
+                     { value: 'high', label: 'High' }
+                   ]}
+                   value={manualForm.priority}
+                   onChange={(name, value) => handleChange(name, value)}
+                   onBlur={handleBlur}
+                   error={errors.priority}
+                   touched={touched.priority}
+                   placeholder="Select priority"
+                 />
+                 <ValidatedSelect
+                   name="assigned_hr"
+                   label="Assign to HR"
+                   options={hrOptions}
+                   value={manualForm.assigned_hr}
+                   onChange={(name, value) => handleChange(name, value)}
+                   onBlur={handleBlur}
+                   error={errors.assigned_hr}
+                   touched={touched.assigned_hr}
+                 />
               </div>
-              <ValidatedInput
-                name="description"
-                label="Job Description"
-                value={manualForm.description}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                error={errors.description}
-                touched={touched.description}
-                placeholder="Detailed job description..."
-                textarea
-                rows={4}
-              />
+                             <ValidatedInput
+                 name="description"
+                 label="Job Description"
+                 value={manualForm.description}
+                 onChange={(name, value) => handleChange(name, value)}
+                 onBlur={handleBlur}
+                 error={errors.description}
+                 touched={touched.description}
+                 placeholder="Detailed job description..."
+                 textarea
+                 rows={4}
+               />
               <button
                 type="submit"
                 disabled={uploading}
@@ -498,7 +750,22 @@ const AdminAddJob = () => {
                               Location
                             </th>
                             <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                              CTC
+                              Salary Band
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              Rate Type
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              Actual Salary
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              Profit Percentage
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              Expected Package
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              Priority
                             </th>
                             <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                               Assign to HR
@@ -516,7 +783,70 @@ const AdminAddJob = () => {
                                 {row.description}
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-900">{row.location}</td>
-                              <td className="px-4 py-2 text-sm text-gray-900">{row.ctc}</td>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                <select
+                                  value={row.salary_band || ''}
+                                  onChange={e => handleCSVSalaryBandChange(row.id, e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                >
+                                  <option value="">Select Band</option>
+                                  {salaryBands.map(band => (
+                                    <option key={band.band} value={band.band}>
+                                      {band.band}{band.experience_range ? ` (${band.experience_range})` : ''}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                <select
+                                  value={row.salary_rate || ''}
+                                  onChange={e => handleCSVSalaryRateChange(row.id, e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                >
+                                  <option value="">Select Rate</option>
+                                  <option value="standard">Standard</option>
+                                  <option value="ra1">RA1</option>
+                                  <option value="ra2">RA2</option>
+                                </select>
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                <input
+                                  type="text"
+                                  value={row.actual_salary || ''}
+                                  readOnly
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md bg-gray-50"
+                                  placeholder="Calculated automatically"
+                                />
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                <input
+                                  type="text"
+                                  value={row.profit_percentage || ''}
+                                  onChange={e => handleCSVProfitPercentageChange(row.id, e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                />
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                <input
+                                  type="text"
+                                  value={row.expected_package || ''}
+                                  readOnly
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md bg-gray-50"
+                                  placeholder="Calculated automatically"
+                                />
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                <select
+                                  value={row.priority || ''}
+                                  onChange={e => handleCSVPriorityChange(row.id, e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                >
+                                  <option value="">Select Priority</option>
+                                  <option value="low">Low</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="high">High</option>
+                                </select>
+                              </td>
                               <td className="px-4 py-2 text-sm text-gray-900">
                                 <select
                                   value={row.assigned_hr}
@@ -596,9 +926,37 @@ const AdminAddJob = () => {
                           <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
                             <div className="flex items-center">
                               <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                              <span className="font-mono font-semibold text-blue-700">ctc</span>
+                              <span className="font-mono font-semibold text-blue-700">csa_id</span>
                             </div>
-                            <span className="text-sm text-gray-600">Cost to Company</span>
+                            <span className="text-sm text-gray-600">CSA ID</span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
+                            <div className="flex items-center">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                              <span className="font-mono font-semibold text-blue-700">start_date</span>
+                            </div>
+                            <span className="text-sm text-gray-600">Start Date (YYYY-MM-DD)</span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
+                            <div className="flex items-center">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                              <span className="font-mono font-semibold text-blue-700">end_date</span>
+                            </div>
+                            <span className="text-sm text-gray-600">End Date (YYYY-MM-DD)</span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-green-100 rounded-lg border border-green-200">
+                            <div className="flex items-center">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                              <span className="font-mono font-semibold text-green-700">profit_percentage</span>
+                            </div>
+                            <span className="text-sm text-gray-600">Profit % (calculated in preview)</span>
+                          </div>
+                          <div className="flex items-center justify-between p-3 bg-green-100 rounded-lg border border-green-200">
+                            <div className="flex items-center">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                              <span className="font-mono font-semibold text-green-700">expected_package</span>
+                            </div>
+                            <span className="text-sm text-gray-600">Expected Package (auto-calculated)</span>
                           </div>
                         </div>
                       </div>
@@ -613,36 +971,48 @@ const AdminAddJob = () => {
                           <div className="mb-2">
                             <span className="text-gray-400"># Header row</span>
                           </div>
-                          <div className="mb-1">
-                            <span className="text-yellow-400">title</span>
-                            <span className="text-gray-400">,</span>
-                            <span className="text-yellow-400">description</span>
-                            <span className="text-gray-400">,</span>
-                            <span className="text-yellow-400">location</span>
-                            <span className="text-gray-400">,</span>
-                            <span className="text-yellow-400">ctc</span>
-                          </div>
+                                                     <div className="mb-1">
+                             <span className="text-yellow-400">title</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-yellow-400">description</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-yellow-400">location</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-yellow-400">csa_id</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-yellow-400">start_date</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-yellow-400">end_date</span>
+                           </div>
                           <div className="mt-4 mb-2">
                             <span className="text-gray-400"># Data rows</span>
                           </div>
-                          <div className="mb-1">
-                            <span className="text-green-400">"Software Engineer"</span>
-                            <span className="text-gray-400">,</span>
-                            <span className="text-green-400">"Develop web applications using React"</span>
-                            <span className="text-gray-400">,</span>
-                            <span className="text-green-400">"Bangalore"</span>
-                            <span className="text-gray-400">,</span>
-                            <span className="text-green-400">"8-12 LPA"</span>
-                          </div>
-                          <div>
-                            <span className="text-green-400">"Data Analyst"</span>
-                            <span className="text-gray-400">,</span>
-                            <span className="text-green-400">"Analyze data and create reports"</span>
-                            <span className="text-gray-400">,</span>
-                            <span className="text-green-400">"Mumbai"</span>
-                            <span className="text-gray-400">,</span>
-                            <span className="text-green-400">"6-10 LPA"</span>
-                          </div>
+                                                     <div className="mb-1">
+                             <span className="text-green-400">"Software Engineer"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"Develop web applications using React"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"Bangalore"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"u452jsx"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"2025-01-15"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"2025-02-15"</span>
+                           </div>
+                           <div>
+                             <span className="text-green-400">"Data Analyst"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"Analyze data and create reports"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"Mumbai"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"u452jsy"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"2025-01-20"</span>
+                             <span className="text-gray-400">,</span>
+                             <span className="text-green-400">"2025-02-20"</span>
+                           </div>
                         </div>
                         <div className="mt-3 text-xs text-blue-700 bg-blue-100 p-3 rounded-lg">
                           <div className="font-semibold mb-1">💡 Tips:</div>

@@ -376,7 +376,7 @@ const HRJobs = () => {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Job Details</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location & Package</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Timeline</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">CSA ID</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">CSA ID & Priority</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -410,7 +410,7 @@ const HRJobs = () => {
                           {job.location}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          Package: ₹{job.salary_package}
+                          Package: ₹{job.expected_package || job.salary_package || 'Not specified'}
                         </div>
                       </div>
                     </td>
@@ -426,8 +426,13 @@ const HRJobs = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {job.csa_id || 'N/A'}
+                      <div className="flex flex-col">
+                        <div className="text-sm text-gray-900">
+                          {job.csa_id || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Priority: {job.priority ? job.priority.charAt(0).toUpperCase() + job.priority.slice(1) : 'Not specified'}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
