@@ -11,7 +11,9 @@ import {
   MapPin,
   DollarSign,
   Filter,
-  UserCheck
+  UserCheck,
+  Download,
+  FileText
 } from 'lucide-react'
 import { Doughnut } from 'react-chartjs-2'
 import {
@@ -42,6 +44,9 @@ const AdminDashboard = () => {
     customStartDate: '',
     customEndDate: ''
   })
+  const [hrReportType, setHrReportType] = useState('all') // 'all' or 'individual'
+  const [selectedHrForReport, setSelectedHrForReport] = useState('')
+  const [downloadingReport, setDownloadingReport] = useState(false)
   const { refreshData, lastUpdate } = useRealTime()
   const navigate = useNavigate()
 
@@ -136,6 +141,59 @@ const AdminDashboard = () => {
 
   const handleHrContributionClick = () => {
     navigate('/admin/jobs')
+  }
+
+  const downloadHrReport = async () => {
+    try {
+      setDownloadingReport(true)
+      
+      const params = new URLSearchParams()
+      
+      // Add date filters
+      if (filters.reportType) {
+        params.append('report_type', filters.reportType)
+      }
+      if (filters.reportType === 'custom') {
+        if (filters.customStartDate) {
+          params.append('custom_start_date', filters.customStartDate)
+        }
+        if (filters.customEndDate) {
+          params.append('custom_end_date', filters.customEndDate)
+        }
+      }
+      
+      // Add HR filter
+      if (hrReportType === 'individual' && selectedHrForReport) {
+        params.append('hr_id', selectedHrForReport)
+      }
+      
+      const response = await api.get(`/admin/hr-report?${params.toString()}`, {
+        responseType: 'blob'
+      })
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      
+      // Generate filename
+      const timestamp = new Date().toISOString().slice(0, 10)
+      const hrName = hrReportType === 'individual' && selectedHrForReport 
+        ? hrUsers.find(hr => hr.id === selectedHrForReport)?.name?.replace(/\s+/g, '_') || 'HR'
+        : 'All_HR'
+      
+      link.setAttribute('download', `HR_Report_${hrName}_${timestamp}.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      
+    } catch (error) {
+      console.error('Error downloading HR report:', error)
+      alert('Failed to download HR report. Please try again.')
+    } finally {
+      setDownloadingReport(false)
+    }
   }
 
   if (loading) {
@@ -393,122 +451,126 @@ const AdminDashboard = () => {
         </div>
       </motion.div>
 
-      {/* Filters Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-        className="flex items-center justify-between p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/20"
-      >
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-pastel-blue/30 rounded-lg">
-              <Filter className="h-4 w-4 text-primary-600" />
-            </div>
-            <span className="text-sm font-semibold text-slate-700">Filters:</span>
-          </div>
-          
-          {/* Report Type Filter */}
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-slate-600">Report:</label>
-            <div className="relative">
-              <select
-                value={filters.reportType}
-                onChange={(e) => handleFilterChange('reportType', e.target.value)}
-                className="px-3 py-1.5 pr-8 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 appearance-none cursor-pointer"
-              >
-                <option value="">All Time</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="custom">Custom</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
+             {/* Filters Section */}
+       <motion.div
+         initial={{ opacity: 0, y: 10 }}
+         animate={{ opacity: 1, y: 0 }}
+         transition={{ duration: 0.3, delay: 0.1 }}
+         className="p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/20"
+       >
+         {/* Header */}
+         <div className="flex items-center gap-3 mb-4">
+           <div className="p-1.5 bg-pastel-blue/30 rounded-lg">
+             <Filter className="h-4 w-4 text-primary-600" />
+           </div>
+           <span className="text-sm font-semibold text-slate-700">Filters</span>
+         </div>
 
-          {/* HR Filter */}
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-slate-600">HR:</label>
-            <div className="relative">
-              <select
-                value={filters.hrId}
-                onChange={(e) => handleFilterChange('hrId', e.target.value)}
-                className="px-3 py-1.5 pr-8 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 appearance-none cursor-pointer"
-              >
-                <option value="">All HR</option>
-                {hrUsers.map((hr) => (
-                  <option key={hr.id} value={hr.id}>
-                    {hr.name}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
+         {/* Filters Grid */}
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-4">
+           {/* Report Type Filter */}
+           <div className="flex flex-col gap-1">
+             <label className="text-xs font-medium text-slate-600">Report Type</label>
+             <div className="relative">
+               <select
+                 value={filters.reportType}
+                 onChange={(e) => handleFilterChange('reportType', e.target.value)}
+                 className="w-full px-3 py-2 pr-8 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 appearance-none cursor-pointer"
+               >
+                 <option value="">All Time</option>
+                 <option value="weekly">Weekly</option>
+                 <option value="monthly">Monthly</option>
+                 <option value="custom">Custom</option>
+               </select>
+               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                 <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                 </svg>
+               </div>
+             </div>
+           </div>
 
-          {/* Custom Date Range */}
-          {filters.reportType === 'custom' && (
-            <>
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-slate-600">From:</label>
-                <input
-                  type="date"
-                  value={filters.customStartDate}
-                  onChange={(e) => handleFilterChange('customStartDate', e.target.value)}
-                  className="px-3 py-1.5 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-slate-600">To:</label>
-                <input
-                  type="date"
-                  value={filters.customEndDate}
-                  onChange={(e) => handleFilterChange('customEndDate', e.target.value)}
-                  className="px-3 py-1.5 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
-                />
-              </div>
-            </>
-          )}
-        </div>
+           {/* HR Filter */}
+           <div className="flex flex-col gap-1">
+             <label className="text-xs font-medium text-slate-600">HR</label>
+             <div className="relative">
+               <select
+                 value={filters.hrId}
+                 onChange={(e) => handleFilterChange('hrId', e.target.value)}
+                 className="w-full px-3 py-2 pr-8 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200 appearance-none cursor-pointer"
+               >
+                 <option value="">All HR</option>
+                 {hrUsers.map((hr) => (
+                   <option key={hr.id} value={hr.id}>
+                     {hr.name}
+                   </option>
+                 ))}
+               </select>
+               <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                 <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                 </svg>
+               </div>
+             </div>
+           </div>
 
-        {/* Active Filters & Clear Button */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            {filters.reportType && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-pastel-blue/20 text-primary-700">
-                {filters.reportType === 'weekly' ? 'Weekly' :
-                 filters.reportType === 'monthly' ? 'Monthly' :
-                 filters.reportType === 'custom' ? 'Custom' : ''}
-              </span>
-            )}
-            {filters.hrId && (
-              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-pastel-green/20 text-success-700">
-                {hrUsers.find(hr => hr.id === filters.hrId)?.name || 'HR'}
-              </span>
-            )}
-          </div>
-          
-          {(filters.reportType || filters.hrId) && (
-            <button
-              onClick={clearFilters}
-              className="inline-flex items-center px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 hover:bg-white/50 rounded-md transition-all duration-200"
-            >
-              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Clear
-            </button>
-          )}
-        </div>
-      </motion.div>
+           {/* Custom Date Range - From */}
+           {filters.reportType === 'custom' && (
+             <div className="flex flex-col gap-1">
+               <label className="text-xs font-medium text-slate-600">From Date</label>
+               <input
+                 type="date"
+                 value={filters.customStartDate}
+                 onChange={(e) => handleFilterChange('customStartDate', e.target.value)}
+                 className="w-full px-3 py-2 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
+               />
+             </div>
+           )}
+
+           {/* Custom Date Range - To */}
+           {filters.reportType === 'custom' && (
+             <div className="flex flex-col gap-1">
+               <label className="text-xs font-medium text-slate-600">To Date</label>
+               <input
+                 type="date"
+                 value={filters.customEndDate}
+                 onChange={(e) => handleFilterChange('customEndDate', e.target.value)}
+                 className="w-full px-3 py-2 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
+               />
+             </div>
+           )}
+         </div>
+
+         {/* Active Filters & Clear Button */}
+         <div className="flex flex-wrap items-center gap-2">
+           <div className="flex flex-wrap items-center gap-2">
+             {filters.reportType && (
+               <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-pastel-blue/20 text-primary-700">
+                 {filters.reportType === 'weekly' ? 'Weekly' :
+                  filters.reportType === 'monthly' ? 'Monthly' :
+                  filters.reportType === 'custom' ? 'Custom' : ''}
+               </span>
+             )}
+             {filters.hrId && (
+               <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-pastel-green/20 text-success-700">
+                 {hrUsers.find(hr => hr.id === filters.hrId)?.name || 'HR'}
+               </span>
+             )}
+           </div>
+           
+           {(filters.reportType || filters.hrId) && (
+             <button
+               onClick={clearFilters}
+               className="inline-flex items-center px-3 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 hover:bg-white/50 rounded-md transition-all duration-200"
+             >
+               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+               </svg>
+               Clear
+             </button>
+           )}
+         </div>
+       </motion.div>
 
       {/* HR Performance Section */}
       {dashboardData.hr_performance && (
@@ -692,6 +754,132 @@ const AdminDashboard = () => {
              </div>
            </div>
          </motion.div>
+
+        {/* HR Report Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.6 }}
+        >
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">HR Performance Report</h3>
+                <p className="text-sm text-slate-600 mt-1">Download detailed HR performance reports</p>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <FileText className="h-4 w-4" />
+                <span>Excel Report</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Report Type Selection */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-slate-700">Report Type:</label>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="hrReportType"
+                        value="all"
+                        checked={hrReportType === 'all'}
+                        onChange={(e) => setHrReportType(e.target.value)}
+                        className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-slate-700">All HR</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="hrReportType"
+                        value="individual"
+                        checked={hrReportType === 'individual'}
+                        onChange={(e) => setHrReportType(e.target.value)}
+                        className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-slate-700">Individual HR</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* HR Selection for Individual Report */}
+                {hrReportType === 'individual' && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-slate-700">Select HR:</label>
+                    <select
+                      value={selectedHrForReport}
+                      onChange={(e) => setSelectedHrForReport(e.target.value)}
+                      className="px-3 py-1.5 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
+                    >
+                      <option value="">Choose HR</option>
+                      {hrUsers.map((hr) => (
+                        <option key={hr.id} value={hr.id}>
+                          {hr.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Report Info */}
+              <div className="bg-slate-50/50 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-primary-100 rounded-lg">
+                    <FileText className="h-4 w-4 text-primary-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-slate-800 mb-1">Report Includes:</h4>
+                    <ul className="text-xs text-slate-600 space-y-1">
+                      <li>• HR Name and Email</li>
+                      <li>• Total Jobs Allocated (Open, Closed, Submitted, Demand Closed)</li>
+                      <li>• Total Candidates Added</li>
+                      <li>• Selected Candidates Count</li>
+                      <li>• Selected Candidates with Job Titles</li>
+                      {filters.reportType && (
+                        <li>• Date Range: {filters.reportType === 'weekly' ? 'Last 7 days' : 
+                                           filters.reportType === 'monthly' ? 'Last 30 days' : 
+                                           filters.reportType === 'custom' ? 'Custom range' : 'All time'}</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Download Button */}
+              <div className="flex items-center justify-between pt-2">
+                <div className="text-xs text-slate-500">
+                  {hrReportType === 'all' ? 'Will generate report for all HR users' : 
+                   selectedHrForReport ? `Will generate report for ${hrUsers.find(hr => hr.id === selectedHrForReport)?.name}` : 
+                   'Please select an HR user'}
+                </div>
+                <button
+                  onClick={downloadHrReport}
+                  disabled={downloadingReport || (hrReportType === 'individual' && !selectedHrForReport)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    downloadingReport || (hrReportType === 'individual' && !selectedHrForReport)
+                      ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                      : 'bg-primary-600 text-white hover:bg-primary-700 shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  {downloadingReport ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      <span>Download Report</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   )

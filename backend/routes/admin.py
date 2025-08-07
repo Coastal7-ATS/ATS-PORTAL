@@ -5,6 +5,8 @@ from typing import List, Optional
 import pandas as pd
 import random
 import re
+import io
+from fastapi.responses import StreamingResponse
 from models import UserCreate
 from routes.auth import get_current_admin_user
 from database import get_database
@@ -554,4 +556,146 @@ async def get_hr_contribution(current_user: dict = Depends(get_current_admin_use
             "submitted_jobs_count": submitted_jobs_count
         })
     
-    return hr_contribution 
+    return hr_contribution
+
+@router.get("/hr-report")
+async def download_hr_report(
+    report_type: Optional[str] = None,  # "weekly", "monthly", "custom"
+    hr_id: Optional[str] = None,  # If None, generate report for all HR
+    custom_start_date: Optional[str] = None,
+    custom_end_date: Optional[str] = None,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    db = await get_database()
+    
+    # Build date filter based on report type
+    date_filter = {}
+    if report_type:
+        now = datetime.now(timezone.utc)
+        
+        if report_type == "weekly":
+            # Last 7 days
+            start_date = now - timedelta(days=7)
+            date_filter = {
+                "start_date": {
+                    "$gte": start_date.strftime("%Y-%m-%d"),
+                    "$lte": now.strftime("%Y-%m-%d")
+                }
+            }
+        elif report_type == "monthly":
+            # Last 30 days
+            start_date = now - timedelta(days=30)
+            date_filter = {
+                "start_date": {
+                    "$gte": start_date.strftime("%Y-%m-%d"),
+                    "$lte": now.strftime("%Y-%m-%d")
+                }
+            }
+        elif report_type == "custom" and custom_start_date and custom_end_date:
+            # Custom date range
+            date_filter = {
+                "start_date": {
+                    "$gte": custom_start_date,
+                    "$lte": custom_end_date
+                }
+            }
+    
+    # Build HR filter
+    hr_filter = {}
+    if hr_id:
+        hr_filter["assigned_hr"] = hr_id
+    
+    # Combine filters
+    job_filter = {**date_filter, **hr_filter}
+    candidate_filter = {**date_filter}
+    if hr_id:
+        candidate_filter["created_by"] = hr_id
+    
+    # Get HR users to report on
+    if hr_id:
+        # Single HR report
+        hr_users = await db.recruitment_portal.users.find({"_id": ObjectId(hr_id), "role": "hr"}).to_list(length=1)
+    else:
+        # All HR report
+        hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
+    
+    if not hr_users:
+        raise HTTPException(status_code=404, detail="No HR users found")
+    
+    # Prepare Excel data
+    excel_data = []
+    
+    for hr_user in hr_users:
+        hr_id_str = str(hr_user["_id"])
+        
+        # Get job statistics for this HR
+        total_jobs = await db.recruitment_portal.jobs.count_documents({**job_filter, "assigned_hr": hr_id_str})
+        open_jobs = await db.recruitment_portal.jobs.count_documents({**job_filter, "assigned_hr": hr_id_str, "status": "open"})
+        closed_jobs = await db.recruitment_portal.jobs.count_documents({**job_filter, "assigned_hr": hr_id_str, "status": "closed"})
+        submitted_jobs = await db.recruitment_portal.jobs.count_documents({**job_filter, "assigned_hr": hr_id_str, "status": "submitted"})
+        demand_closed_jobs = await db.recruitment_portal.jobs.count_documents({**job_filter, "assigned_hr": hr_id_str, "status": "demand closed"})
+        
+        # Get candidate statistics for this HR
+        total_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "created_by": hr_id_str})
+        selected_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "created_by": hr_id_str, "status": "selected"})
+        
+        # Get selected candidates with job titles
+        selected_candidates_data = await db.recruitment_portal.candidates.find(
+            {**candidate_filter, "created_by": hr_id_str, "status": "selected"}
+        ).to_list(length=1000)
+        
+        # Prepare candidate names with job titles
+        candidate_details = []
+        for candidate in selected_candidates_data:
+            candidate_details.append(f"{candidate.get('name', 'N/A')} - {candidate.get('job_title', 'N/A')}")
+        
+        # Add to Excel data
+        excel_data.append({
+            "HR Name": hr_user["name"],
+            "HR Email": hr_user["email"],
+            "Total Jobs Allocated": total_jobs,
+            "Open Jobs": open_jobs,
+            "Closed Jobs": closed_jobs,
+            "Submitted Jobs": submitted_jobs,
+            "Demand Closed Jobs": demand_closed_jobs,
+            "Total Candidates Added": total_candidates,
+            "Selected Candidates Count": selected_candidates,
+            "Selected Candidates (Name - Job Title)": "; ".join(candidate_details) if candidate_details else "None"
+        })
+    
+    # Create Excel file
+    df = pd.DataFrame(excel_data)
+    
+    # Create Excel writer
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='HR Report', index=False)
+        
+        # Auto-adjust column widths
+        worksheet = writer.sheets['HR Report']
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+    
+    output.seek(0)
+    
+    # Generate filename
+    if hr_id:
+        hr_name = hr_users[0]["name"].replace(" ", "_")
+        filename = f"HR_Report_{hr_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    else:
+        filename = f"All_HR_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    return StreamingResponse(
+        io.BytesIO(output.getvalue()),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    ) 
