@@ -2,7 +2,7 @@ import axios from 'axios'
 import { toast } from 'react-toastify'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://13.200.243.193:8000',
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://13.204.47.60:8000',
   headers: {
     'Content-Type': 'application/json',
   },
