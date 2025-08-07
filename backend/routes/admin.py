@@ -4,6 +4,7 @@ from bson import ObjectId
 from typing import List, Optional
 import pandas as pd
 import random
+import re
 from models import UserCreate
 from routes.auth import get_current_admin_user
 from database import get_database
@@ -152,12 +153,14 @@ async def update_job(
 @router.get("/jobs")
 async def get_all_jobs(
     status: Optional[str] = None,
-    start_date_from: Optional[str] = None,
-    start_date_to: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
     assigned_hr: Optional[str] = None,
     report_type: Optional[str] = None,
+    search: Optional[str] = None,
     current_user: dict = Depends(get_current_admin_user)
 ):
+
     db = await get_database()
     
     # Update expired job statuses first
@@ -170,30 +173,49 @@ async def get_all_jobs(
     if assigned_hr:
         filter_query["assigned_hr"] = assigned_hr
     
+    # Handle search functionality
+    if search:
+        # Create a regex pattern for case-insensitive search
+        import re
+        search_pattern = re.compile(search, re.IGNORECASE)
+        filter_query["$or"] = [
+            {"title": search_pattern},
+            {"description": search_pattern},
+            {"job_id": search_pattern},
+            {"csa_id": search_pattern},
+            {"location": search_pattern},
+            {"salary_package": search_pattern}
+        ]
+    
     # Handle date filtering
     if report_type:
         now = datetime.now(timezone.utc)
         if report_type == "weekly":
             # Last 7 days
-            start_date = now - timedelta(days=7)
-            filter_query["created_at"] = {
-                "$gte": start_date,
+            start_date_range = now - timedelta(days=7)
+            filter_query["start_date"] = {
+                "$gte": start_date_range,
                 "$lte": now
             }
         elif report_type == "monthly":
             # Last 30 days
-            start_date = now - timedelta(days=30)
-            filter_query["created_at"] = {
-                "$gte": start_date,
+            start_date_range = now - timedelta(days=30)
+            filter_query["start_date"] = {
+                "$gte": start_date_range,
                 "$lte": now
             }
-    elif start_date_from:
-        from_date = datetime.fromisoformat(start_date_from)
-        filter_query["start_date"] = {"$gte": from_date}
-    elif start_date_to:
-        to_date = datetime.fromisoformat(start_date_to)
-        to_date = to_date.replace(hour=23, minute=59, second=59, microsecond=999999)
-        filter_query["start_date"] = {"$lte": to_date}
+    else:
+        # Handle custom date range filtering
+        if start_date and end_date:
+            # Both dates provided - filter jobs with start_date between start and end (inclusive)
+            # Since dates are stored as strings in the database, compare as strings
+            filter_query["start_date"] = {"$gte": start_date, "$lte": end_date}
+        elif start_date:
+            # Only start date provided - filter jobs with start_date >= start_date
+            filter_query["start_date"] = {"$gte": start_date}
+        elif end_date:
+            # Only end date provided - filter jobs with start_date <= end_date
+            filter_query["start_date"] = {"$lte": end_date}
 
     # Get all HR users for name mapping
     hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
@@ -370,32 +392,29 @@ async def get_admin_dashboard(
         now = datetime.now(timezone.utc)
         
         if report_type == "weekly":
-            # Last 7 days
+            # Last 7 days - convert to string format for comparison
             start_date = now - timedelta(days=7)
             date_filter = {
-                "created_at": {
-                    "$gte": start_date,
-                    "$lte": now
+                "start_date": {
+                    "$gte": start_date.strftime("%Y-%m-%d"),
+                    "$lte": now.strftime("%Y-%m-%d")
                 }
             }
         elif report_type == "monthly":
-            # Last 30 days
+            # Last 30 days - convert to string format for comparison
             start_date = now - timedelta(days=30)
             date_filter = {
-                "created_at": {
-                    "$gte": start_date,
-                    "$lte": now
+                "start_date": {
+                    "$gte": start_date.strftime("%Y-%m-%d"),
+                    "$lte": now.strftime("%Y-%m-%d")
                 }
             }
         elif report_type == "custom" and custom_start_date and custom_end_date:
-            # Custom date range
-            start_date = datetime.fromisoformat(custom_start_date)
-            end_date = datetime.fromisoformat(custom_end_date)
-            end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            # Custom date range - filter by start_date to match jobs filtering logic
             date_filter = {
-                "created_at": {
-                    "$gte": start_date,
-                    "$lte": end_date
+                "start_date": {
+                    "$gte": custom_start_date,
+                    "$lte": custom_end_date
                 }
             }
     

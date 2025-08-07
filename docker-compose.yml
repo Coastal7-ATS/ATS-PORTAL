@@ -27,7 +27,7 @@ services:
     container_name: recruitment-frontend
     restart: unless-stopped
     environment:
-      - VITE_BACKEND_URL=http://13.200.243.193:8000
+      - VITE_BACKEND_URL=http://13.204.47.60:8000
     ports:
       - "80:80"
     depends_on:
