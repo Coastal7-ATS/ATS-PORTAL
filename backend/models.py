@@ -23,6 +23,12 @@ class JobBase(BaseModel):
     csa_id: str  # 6 character alphanumeric
     start_date: datetime
     end_date: datetime
+    # New fields for salary band system
+    salary_band: Optional[str] = None
+    salary_rate: Optional[str] = None  # standard, ra1, ra2
+    profit_percentage: Optional[str] = None
+    expected_package: Optional[str] = None
+    priority: Optional[str] = None  # low, medium, high
 
 class JobCreate(JobBase):
     pass
