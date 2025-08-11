@@ -39,6 +39,7 @@ const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [hrContribution, setHrContribution] = useState([])
+  const [hrRevenue, setHrRevenue] = useState([])
   const [hrUsers, setHrUsers] = useState([])
   const [filters, setFilters] = useState({
     reportType: '',
@@ -59,6 +60,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchHrContribution()
+    fetchHrRevenue()
   }, [])
 
   const fetchDashboardData = async () => {
@@ -97,6 +99,16 @@ const AdminDashboard = () => {
       setHrContribution(response.data)
     } catch (error) {
       console.error('Error fetching HR contribution data:', error)
+    }
+  }
+
+  const fetchHrRevenue = async () => {
+    try {
+      const response = await api.get('/admin/hr-revenue')
+      console.log('HR Revenue data:', response.data)
+      setHrRevenue(response.data)
+    } catch (error) {
+      console.error('Error fetching HR revenue data:', error)
     }
   }
 
@@ -378,6 +390,119 @@ const AdminDashboard = () => {
   // Add fallback for empty HR contribution data
   const hasHrContributionData = hrContribution && hrContribution.length > 0
   const hasNonZeroData = data && data.some(value => value > 0)
+
+  // Chart data for HR revenue
+  console.log('HR Revenue for chart:', hrRevenue)
+  const revenueLabels = hrRevenue?.map(hr => hr.hr_name) || []
+  const revenueData = hrRevenue?.map(hr => hr.revenue) || []
+  const hrRevenueChartData = {
+    labels: revenueLabels,
+    datasets: [
+      {
+        data: revenueData,
+        backgroundColor: function(context) {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) {
+            return null;
+          }
+          
+          const index = context.dataIndex;
+          const colors = [
+            // Green gradient for revenue
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#10b981');
+              gradient.addColorStop(1, '#059669');
+              return gradient;
+            },
+            // Blue gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#3b82f6');
+              gradient.addColorStop(1, '#2563eb');
+              return gradient;
+            },
+            // Purple gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#8b5cf6');
+              gradient.addColorStop(1, '#7c3aed');
+              return gradient;
+            },
+            // Orange gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#f97316');
+              gradient.addColorStop(1, '#ea580c');
+              return gradient;
+            },
+            // Pink gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#ec4899');
+              gradient.addColorStop(1, '#db2777');
+              return gradient;
+            },
+            // Cyan gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#06b6d4');
+              gradient.addColorStop(1, '#0891b2');
+              return gradient;
+            },
+            // Lime gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#84cc16');
+              gradient.addColorStop(1, '#65a30d');
+              return gradient;
+            },
+            // Indigo gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#6366f1');
+              gradient.addColorStop(1, '#4f46e5');
+              return gradient;
+            },
+            // Rose gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#f43f5e');
+              gradient.addColorStop(1, '#e11d48');
+              return gradient;
+            },
+            // Amber gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#f59e0b');
+              gradient.addColorStop(1, '#d97706');
+              return gradient;
+            }
+          ];
+          
+          return colors[index] ? colors[index]() : '#6b7280';
+        },
+        borderColor: [
+          '#10b981', // green border
+          '#3b82f6', // blue border
+          '#8b5cf6', // purple border
+          '#f97316', // orange border
+          '#ec4899', // pink border
+          '#06b6d4', // cyan border
+          '#84cc16', // lime border
+          '#6366f1', // indigo border
+          '#f43f5e', // rose border
+          '#f59e0b', // amber border
+        ],
+        borderWidth: 2,
+      },
+    ],
+  }
+
+  // Add fallback for empty HR revenue data
+  const hasHrRevenueData = hrRevenue && hrRevenue.length > 0
+  const hasNonZeroRevenueData = revenueData && revenueData.some(value => value > 0)
 
   if (loading) {
     return (
@@ -674,7 +799,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Job Status Chart */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -731,69 +856,69 @@ const AdminDashboard = () => {
           </div>
         </motion.div>
 
-                 {/* HR Contribution Chart */}
-         <motion.div
-           initial={{ opacity: 0, y: 10 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 0.3, delay: 0.5 }}
-         >
-           <div 
-             className="card p-6 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.01]"
-             onClick={handleHrContributionClick}
-           >
-             <div className="flex items-center justify-between mb-6">
-               <h3 className="text-xl font-bold text-slate-800">HR Contribution</h3>
-               <div className="flex items-center gap-2 text-sm text-slate-500">
-                 <div className="w-3 h-3 bg-success-500 rounded-full"></div>
-                 <span>All Time</span>
-               </div>
-             </div>
-             <div className="h-72">
-               {hasHrContributionData && hasNonZeroData ? (
-                 <Doughnut
-                   data={hrContributionData}
-                   options={{
-                     responsive: true,
-                     maintainAspectRatio: false,
-                     plugins: {
-                       legend: {
-                         position: 'bottom',
-                         labels: {
-                           usePointStyle: true,
-                           padding: 20,
-                           font: {
-                             size: 12,
-                             family: 'Inter'
-                           }
-                         }
-                       },
-                     },
-                     elements: {
-                       arc: {
-                         borderWidth: 3,
-                         borderColor: '#fff'
-                       }
-                     }
-                   }}
-                 />
-               ) : (
-                 <div className="flex items-center justify-center h-full">
-                   <div className="text-center">
-                     <Users className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-                     <p className="text-slate-500">
-                       {!hasHrContributionData ? 'No HR contribution data available' : 'No submitted jobs found'}
-                     </p>
-                   </div>
-                 </div>
-               )}
-             </div>
-             <div className="mt-4 text-center">
-               <p className="text-sm text-slate-500">Click to view all jobs</p>
-             </div>
-           </div>
-         </motion.div>
+        {/* HR Contribution Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
+        >
+          <div 
+            className="card p-6 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.01]"
+            onClick={handleHrContributionClick}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-800">HR Contribution</h3>
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <div className="w-3 h-3 bg-success-500 rounded-full"></div>
+                <span>All Time</span>
+              </div>
+            </div>
+            <div className="h-72">
+              {hasHrContributionData && hasNonZeroData ? (
+                <Doughnut
+                  data={hrContributionData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'bottom',
+                        labels: {
+                          usePointStyle: true,
+                          padding: 20,
+                          font: {
+                            size: 12,
+                            family: 'Inter'
+                          }
+                        }
+                      },
+                    },
+                    elements: {
+                      arc: {
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                      }
+                    }
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Users className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+                    <p className="text-slate-500">
+                      {!hasHrContributionData ? 'No HR contribution data available' : 'No submitted jobs found'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="mt-4 text-center">
+              <p className="text-sm text-slate-500">Click to view all jobs</p>
+            </div>
+          </div>
+        </motion.div>
 
-        {/* HR Report Section */}
+        {/* HR Revenue Chart */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -801,124 +926,192 @@ const AdminDashboard = () => {
         >
           <div className="card p-6">
             <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-xl font-bold text-slate-800">HR Performance Report</h3>
-                <p className="text-sm text-slate-600 mt-1">Download detailed HR performance reports</p>
-              </div>
+              <h3 className="text-xl font-bold text-slate-800">HR Revenue</h3>
               <div className="flex items-center gap-2 text-sm text-slate-500">
-                <FileText className="h-4 w-4" />
-                <span>Excel Report</span>
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span>Annual {new Date().getFullYear()}</span>
               </div>
             </div>
-
-            <div className="space-y-4">
-              {/* Report Type Selection */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-slate-700">Report Type:</label>
-                  <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="hrReportType"
-                        value="all"
-                        checked={hrReportType === 'all'}
-                        onChange={(e) => setHrReportType(e.target.value)}
-                        className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-slate-700">All HR</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="hrReportType"
-                        value="individual"
-                        checked={hrReportType === 'individual'}
-                        onChange={(e) => setHrReportType(e.target.value)}
-                        className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-slate-700">Individual HR</span>
-                    </label>
+            <div className="h-72">
+              {hasHrRevenueData && hasNonZeroRevenueData ? (
+                <Doughnut
+                  data={hrRevenueChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'bottom',
+                        labels: {
+                          usePointStyle: true,
+                          padding: 20,
+                          font: {
+                            size: 12,
+                            family: 'Inter'
+                          }
+                        }
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            return `${label}: ₹${value.toLocaleString()}`;
+                          }
+                        }
+                      }
+                    },
+                    elements: {
+                      arc: {
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                      }
+                    }
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <TrendingUp className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+                    <p className="text-slate-500">
+                      {!hasHrRevenueData ? 'No HR revenue data available' : 'No revenue generated this year'}
+                    </p>
                   </div>
                 </div>
-
-                {/* HR Selection for Individual Report */}
-                {hrReportType === 'individual' && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-slate-700">Select HR:</label>
-                    <select
-                      value={selectedHrForReport}
-                      onChange={(e) => setSelectedHrForReport(e.target.value)}
-                      className="px-3 py-1.5 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
-                    >
-                      <option value="">Choose HR</option>
-                      {hrUsers.map((hr) => (
-                        <option key={hr.id} value={hr.id}>
-                          {hr.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              {/* Report Info */}
-              <div className="bg-slate-50/50 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-primary-100 rounded-lg">
-                    <FileText className="h-4 w-4 text-primary-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-slate-800 mb-1">Report Includes:</h4>
-                    <ul className="text-xs text-slate-600 space-y-1">
-                      <li>• HR Name and Email</li>
-                      <li>• Total Jobs Allocated (Open, Closed, Submitted, Demand Closed)</li>
-                      <li>• Total Candidates Added</li>
-                      <li>• Selected Candidates Count</li>
-                      <li>• Selected Candidates with Job Titles</li>
-                      {filters.reportType && (
-                        <li>• Date Range: {filters.reportType === 'weekly' ? 'Last 7 days' : 
-                                           filters.reportType === 'monthly' ? 'Last 30 days' : 
-                                           filters.reportType === 'custom' ? 'Custom range' : 'All time'}</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* Download Button */}
-              <div className="flex items-center justify-between pt-2">
-                <div className="text-xs text-slate-500">
-                  {hrReportType === 'all' ? 'Will generate report for all HR users' : 
-                   selectedHrForReport ? `Will generate report for ${hrUsers.find(hr => hr.id === selectedHrForReport)?.name}` : 
-                   'Please select an HR user'}
-                </div>
-                <button
-                  onClick={downloadHrReport}
-                  disabled={downloadingReport || (hrReportType === 'individual' && !selectedHrForReport)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                    downloadingReport || (hrReportType === 'individual' && !selectedHrForReport)
-                      ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                      : 'bg-primary-600 text-white hover:bg-primary-700 shadow-lg hover:shadow-xl'
-                  }`}
-                >
-                  {downloadingReport ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Generating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download className="h-4 w-4" />
-                      <span>Download Report</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              )}
+            </div>
+            <div className="mt-4 text-center">
+              <p className="text-sm text-slate-500">Revenue = Actual Salary - Expected Package</p>
             </div>
           </div>
         </motion.div>
       </div>
+
+      {/* HR Report Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.7 }}
+      >
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-xl font-bold text-slate-800">HR Performance Report</h3>
+              <p className="text-sm text-slate-600 mt-1">Download detailed HR performance reports</p>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <FileText className="h-4 w-4" />
+              <span>Excel Report</span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* Report Type Selection */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-slate-700">Report Type:</label>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="hrReportType"
+                      value="all"
+                      checked={hrReportType === 'all'}
+                      onChange={(e) => setHrReportType(e.target.value)}
+                      className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-slate-700">All HR</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="hrReportType"
+                      value="individual"
+                      checked={hrReportType === 'individual'}
+                      onChange={(e) => setHrReportType(e.target.value)}
+                      className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-slate-700">Individual HR</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* HR Selection for Individual Report */}
+              {hrReportType === 'individual' && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-slate-700">Select HR:</label>
+                  <select
+                    value={selectedHrForReport}
+                    onChange={(e) => setSelectedHrForReport(e.target.value)}
+                    className="px-3 py-1.5 text-sm bg-white/80 border border-white/50 rounded-lg focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500 transition-all duration-200"
+                  >
+                    <option value="">Choose HR</option>
+                    {hrUsers.map((hr) => (
+                      <option key={hr.id} value={hr.id}>
+                        {hr.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Report Info */}
+            <div className="bg-slate-50/50 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-primary-100 rounded-lg">
+                  <FileText className="h-4 w-4 text-primary-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-semibold text-slate-800 mb-1">Report Includes:</h4>
+                  <ul className="text-xs text-slate-600 space-y-1">
+                    <li>• HR Name and Email</li>
+                    <li>• Total Jobs Allocated (Open, Closed, Submitted, Demand Closed)</li>
+                    <li>• Total Candidates Added</li>
+                    <li>• Selected Candidates Count</li>
+                    <li>• Selected Candidates with Job Titles</li>
+                    {filters.reportType && (
+                      <li>• Date Range: {filters.reportType === 'weekly' ? 'Last 7 days' : 
+                                         filters.reportType === 'monthly' ? 'Last 30 days' : 
+                                         filters.reportType === 'custom' ? 'Custom range' : 'All time'}</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Download Button */}
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-xs text-slate-500">
+                {hrReportType === 'all' ? 'Will generate report for all HR users' : 
+                 selectedHrForReport ? `Will generate report for ${hrUsers.find(hr => hr.id === selectedHrForReport)?.name}` : 
+                 'Please select an HR user'}
+              </div>
+              <button
+                onClick={downloadHrReport}
+                disabled={downloadingReport || (hrReportType === 'individual' && !selectedHrForReport)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  downloadingReport || (hrReportType === 'individual' && !selectedHrForReport)
+                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                    : 'bg-primary-600 text-white hover:bg-primary-700 shadow-lg hover:shadow-xl'
+                }`}
+              >
+                {downloadingReport ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    <span>Download Report</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </div>
   )
 }

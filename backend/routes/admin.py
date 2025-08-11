@@ -762,3 +762,64 @@ async def delete_job(job_id: str, current_user: dict = Depends(get_current_admin
         raise HTTPException(status_code=404, detail="Job not found")
     
     return {"message": "Job deleted successfully"} 
+
+@router.get("/hr-revenue")
+async def get_hr_revenue(current_user: dict = Depends(get_current_admin_user)):
+    db = await get_database()
+    
+    # Get current year for annual revenue calculation
+    current_year = datetime.now().year
+    start_of_year = datetime(current_year, 1, 1)
+    end_of_year = datetime(current_year, 12, 31, 23, 59, 59)
+    
+    # Get all placed candidates for the current year
+    placed_candidates = await db.recruitment_portal.candidates.find({
+        "status": "placed",
+        "created_at": {
+            "$gte": start_of_year,
+            "$lte": end_of_year
+        }
+    }).to_list(length=1000)
+    
+    # Get all HR users
+    hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
+    hr_map = {str(hr["_id"]): hr["name"] for hr in hr_users}
+    
+    # Calculate revenue for each HR
+    hr_revenue = {}
+    
+    for candidate in placed_candidates:
+        hr_id = candidate.get("created_by")
+        if not hr_id:
+            continue
+            
+        hr_name = hr_map.get(hr_id, "Unknown HR")
+        
+        # Get the job details to calculate revenue
+        job = await db.recruitment_portal.jobs.find_one({"job_id": candidate.get("job_id")})
+        if not job:
+            continue
+            
+        # Calculate revenue: actual_salary - expected_package
+        actual_salary = float(job.get("salary_package", 0)) if job.get("salary_package") else 0
+        expected_package = float(job.get("expected_package", 0)) if job.get("expected_package") else 0
+        
+        revenue = actual_salary - expected_package
+        
+        if hr_name not in hr_revenue:
+            hr_revenue[hr_name] = 0
+        
+        hr_revenue[hr_name] += revenue
+    
+    # Convert to list format for frontend
+    revenue_data = []
+    for hr_name, revenue in hr_revenue.items():
+        revenue_data.append({
+            "hr_name": hr_name,
+            "revenue": round(revenue, 2)
+        })
+    
+    # Sort by revenue in descending order
+    revenue_data.sort(key=lambda x: x["revenue"], reverse=True)
+    
+    return revenue_data 
