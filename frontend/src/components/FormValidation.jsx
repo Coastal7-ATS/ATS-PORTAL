@@ -6,7 +6,7 @@ export const validationRules = {
   email: {
     required: true,
     pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    message: 'Please enter a valid email address'
+    message: 'Please enter a valid email address with @ symbol'
   },
   password: {
     required: true,
@@ -20,8 +20,13 @@ export const validationRules = {
   },
   phone: {
     required: true,
-    pattern: /^[\+]?[1-9][\d]{0,15}$/,
-    message: 'Please enter a valid phone number'
+    pattern: /^\d{10}$/,
+    message: 'Phone number must contain exactly 10 digits'
+  },
+  pan_number: {
+    required: true,
+    pattern: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
+    message: 'PAN Number is mandatory and must be in format ABCDE1234F'
   },
   required: {
     required: true,

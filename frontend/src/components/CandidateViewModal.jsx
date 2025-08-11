@@ -23,6 +23,33 @@ const CandidateViewModal = ({ candidate, open, onClose, onUpdate }) => {
 
   const handleEditCandidate = async () => {
     try {
+      // Validate required fields
+      if (!editForm.name || !editForm.email || !editForm.phone || !editForm.pan_number) {
+        toast.error('Please fill in all required fields (Name, Email, Phone, PAN Number)');
+        return;
+      }
+      
+      // Validate email format
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(editForm.email)) {
+        toast.error('Please enter a valid email address with @ symbol');
+        return;
+      }
+      
+      // Validate phone format (10 digits)
+      const phonePattern = /^\d{10}$/;
+      if (!phonePattern.test(editForm.phone)) {
+        toast.error('Phone number must contain exactly 10 digits');
+        return;
+      }
+      
+      // Validate PAN number format
+      const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panPattern.test(editForm.pan_number)) {
+        toast.error('PAN Number must be in format ABCDE1234F');
+        return;
+      }
+
       setLoading(true);
       const cleanedData = { ...editForm };
       Object.keys(cleanedData).forEach((key) => {
@@ -56,9 +83,15 @@ const CandidateViewModal = ({ candidate, open, onClose, onUpdate }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'selected':
+      case 'placed':
         return 'bg-green-100 text-green-800';
-      case 'rejected':
+      case 'interview_selected':
+        return 'bg-green-100 text-green-800';
+      case 'interview_reject':
+        return 'bg-red-100 text-red-800';
+      case 'screen_reject':
+        return 'bg-red-100 text-red-800';
+      case 'no_show_for_joining':
         return 'bg-red-100 text-red-800';
       case 'interviewed':
         return 'bg-blue-100 text-blue-800';
@@ -115,9 +148,39 @@ const CandidateViewModal = ({ candidate, open, onClose, onUpdate }) => {
         );
       }
 
+      // Add validation attributes for specific fields
+      const getValidationProps = (fieldName, label) => {
+        const props = {};
+        
+        if (fieldName === 'email') {
+          props.type = 'email';
+          props.pattern = '[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$';
+          props.title = 'Please enter a valid email address with @ symbol';
+          props.required = true;
+        } else if (fieldName === 'phone') {
+          props.type = 'tel';
+          props.pattern = '[0-9]{10}';
+          props.maxLength = '10';
+          props.title = 'Phone number must contain exactly 10 digits';
+          props.required = true;
+        } else if (fieldName === 'pan_number') {
+          props.pattern = '[A-Z]{5}[0-9]{4}[A-Z]{1}';
+          props.maxLength = '10';
+          props.title = 'PAN Number is mandatory and must be in format ABCDE1234F';
+          props.required = true;
+        }
+        
+        return props;
+      };
+
+      const validationProps = getValidationProps(fieldName, label);
+
       return (
         <div className="mb-3">
-          <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {label}
+            {validationProps.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
           <input
             type={fieldType}
             value={editForm[fieldName] || ''}
@@ -128,6 +191,7 @@ const CandidateViewModal = ({ candidate, open, onClose, onUpdate }) => {
               })
             }
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            {...validationProps}
           />
         </div>
       );
@@ -846,9 +910,12 @@ const CandidateViewModal = ({ candidate, open, onClose, onUpdate }) => {
                 >
                   <option value="applied">Applied</option>
                   <option value="in_progress">In Progress</option>
+                  <option value="screen_reject">Screen Reject</option>
                   <option value="interviewed">Interviewed</option>
-                  <option value="selected">Selected</option>
-                  <option value="rejected">Rejected</option>
+                  <option value="interview_reject">Interview Reject</option>
+                  <option value="interview_selected">Interview Selected</option>
+                  <option value="no_show_for_joining">No Show for Joining</option>
+                  <option value="placed">Placed</option>
                 </select>
               </div>
               <div>

@@ -12,7 +12,10 @@ import {
   Filter,
   UserCheck,
   Download,
-  FileText
+  FileText,
+  CheckCircle,
+  XCircle as XCircleIcon,
+  Award
 } from 'lucide-react'
 import { Doughnut } from 'react-chartjs-2'
 import {
@@ -433,6 +436,24 @@ const AdminDashboard = () => {
       icon: Users,
       color: 'from-success-500 to-emerald-500'
     },
+    {
+      name: 'Interview Selected',
+      value: Number(dashboardData?.interview_selected_candidates) || 0,
+      icon: CheckCircle,
+      color: 'from-green-500 to-emerald-600'
+    },
+    {
+      name: 'Interview Rejected',
+      value: Number(dashboardData?.interview_reject_candidates) || 0,
+      icon: XCircleIcon,
+      color: 'from-red-500 to-rose-600'
+    },
+    {
+      name: 'Placed',
+      value: Number(dashboardData?.placed_candidates) || 0,
+      icon: Award,
+      color: 'from-yellow-500 to-amber-600'
+    },
   ]
   
   return (
@@ -586,7 +607,7 @@ const AdminDashboard = () => {
             </h3>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-primary-600">
                 {dashboardData.hr_performance.total_assigned_jobs}
@@ -611,12 +632,30 @@ const AdminDashboard = () => {
               </div>
               <div className="text-sm text-slate-600">Selected Candidates</div>
             </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {dashboardData.hr_performance.interview_selected_candidates}
+              </div>
+              <div className="text-sm text-slate-600">Interview Selected</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">
+                {dashboardData.hr_performance.interview_reject_candidates}
+              </div>
+              <div className="text-sm text-slate-600">Interview Rejected</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {dashboardData.hr_performance.placed_candidates}
+              </div>
+              <div className="text-sm text-slate-600">Placed</div>
+            </div>
           </div>
         </motion.div>
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.name}

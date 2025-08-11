@@ -81,6 +81,33 @@ const AdminCandidates = () => {
 
   const handleEditCandidate = async () => {
     try {
+      // Validate required fields
+      if (!editForm.name || !editForm.email || !editForm.phone || !editForm.pan_number) {
+        toast.error('Please fill in all required fields (Name, Email, Phone, PAN Number)');
+        return;
+      }
+      
+      // Validate email format
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(editForm.email)) {
+        toast.error('Please enter a valid email address with @ symbol');
+        return;
+      }
+      
+      // Validate phone format (10 digits)
+      const phonePattern = /^\d{10}$/;
+      if (!phonePattern.test(editForm.phone)) {
+        toast.error('Phone number must contain exactly 10 digits');
+        return;
+      }
+      
+      // Validate PAN number format
+      const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panPattern.test(editForm.pan_number)) {
+        toast.error('PAN Number must be in format ABCDE1234F');
+        return;
+      }
+
       const cleanedData = { ...editForm }
       Object.keys(cleanedData).forEach(key => {
         if (cleanedData[key] === '') {
@@ -196,9 +223,13 @@ const AdminCandidates = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'selected':
+      case 'placed':
         return 'badge-success'
-      case 'rejected':
+      case 'interview_selected':
+        return 'badge-success'
+      case 'interview_reject':
+        return 'badge-danger'
+      case 'screen_reject':
         return 'badge-danger'
       case 'interviewed':
         return 'badge-info'
@@ -206,6 +237,8 @@ const AdminCandidates = () => {
         return 'badge-warning'
       case 'applied':
         return 'badge-warning'
+      case 'no_show_for_joining':
+        return 'badge-danger'
       default:
         return 'badge-secondary'
     }
@@ -213,9 +246,15 @@ const AdminCandidates = () => {
 
   const getAdminStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'selected':
+      case 'placed':
         return 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300 rounded-full'
-      case 'rejected':
+      case 'interview_selected':
+        return 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300 rounded-full'
+      case 'interview_reject':
+        return 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300 rounded-full'
+      case 'screen_reject':
+        return 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300 rounded-full'
+      case 'no_show_for_joining':
         return 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300 rounded-full'
       case 'interviewed':
         return 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300 rounded-full'
@@ -325,14 +364,45 @@ const AdminCandidates = () => {
           </div>
         )
       }
+      // Add validation attributes for specific fields
+      const getValidationProps = (fieldName, label) => {
+        const props = {};
+        
+        if (fieldName === 'email') {
+          props.type = 'email';
+          props.pattern = '[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$';
+          props.title = 'Please enter a valid email address with @ symbol';
+          props.required = true;
+        } else if (fieldName === 'phone') {
+          props.type = 'tel';
+          props.pattern = '[0-9]{10}';
+          props.maxLength = '10';
+          props.title = 'Phone number must contain exactly 10 digits';
+          props.required = true;
+        } else if (fieldName === 'pan_number') {
+          props.pattern = '[A-Z]{5}[0-9]{4}[A-Z]{1}';
+          props.maxLength = '10';
+          props.title = 'PAN Number is mandatory and must be in format ABCDE1234F';
+          props.required = true;
+        }
+        
+        return props;
+      };
+
+      const validationProps = getValidationProps(fieldName, label);
+
       return (
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {label}
+            {validationProps.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
           <input
             type={fieldType}
             value={editForm[fieldName] || ''}
             onChange={(e) => setEditForm({ ...editForm, [fieldName]: e.target.value })}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white transition"
+            {...validationProps}
           />
         </div>
       )
@@ -1100,7 +1170,8 @@ const AdminCandidates = () => {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Position</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Experience & CTC</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Skills & Education</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">HR & Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">HR</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -1183,18 +1254,18 @@ const AdminCandidates = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <div className="text-sm font-medium text-blue-600">
-                          {candidate.created_by_hr || 'Unknown HR'}
-                        </div>
-                        <span
-                          className={`inline-flex px-3 py-1.5 text-xs font-semibold mt-1 ${getAdminStatusColor(
-                            candidate.status
-                          )}`}
-                        >
-                          {candidate.status}
-                        </span>
+                      <div className="text-sm font-medium text-blue-600">
+                        {candidate.created_by_hr || 'Unknown HR'}
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex px-3 py-1.5 text-xs font-semibold ${getAdminStatusColor(
+                          candidate.status
+                        )}`}
+                      >
+                        {candidate.status}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -1728,9 +1799,12 @@ const AdminCandidates = () => {
                   >
                     <option value="applied">Applied</option>
                     <option value="in_progress">In Progress</option>
+                    <option value="screen_reject">Screen Reject</option>
                     <option value="interviewed">Interviewed</option>
-                    <option value="selected">Selected</option>
-                    <option value="rejected">Rejected</option>
+                    <option value="interview_reject">Interview Reject</option>
+                    <option value="interview_selected">Interview Selected</option>
+                    <option value="no_show_for_joining">No Show for Joining</option>
+                    <option value="placed">Placed</option>
                   </select>
                 </div>
                 <div>

@@ -28,8 +28,7 @@ const fadeIn = {
   visible: { opacity: 1, transition: { duration: 0.4 } }
 }
 
-const cardClass =
-  'card p-8'
+const cardClass = 'card p-8'
 
 const AdminAddJob = () => {
   const navigate = useNavigate()
@@ -364,6 +363,21 @@ const AdminAddJob = () => {
     }))
   ]
 
+  // Download sample CSV function
+  const downloadSampleCSV = () => {
+        const csvContent = `Job Title,Job Description, Location, CSA ID, Start Date, End Date`
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'sample_jobs.csv'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 bg-white rounded-2xl">
@@ -465,164 +479,164 @@ const AdminAddJob = () => {
               className="space-y-6"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ValidatedInput
+                  name="title"
+                  label="Job Title"
+                  value={manualForm.title}
+                  onChange={(name, value) => handleChange(name, value)}
+                  onBlur={handleBlur}
+                  error={errors.title}
+                  touched={touched.title}
+                  placeholder="e.g., Software Engineer"
+                />
+                <ValidatedInput
+                  name="location"
+                  label="Location"
+                  value={manualForm.location}
+                  onChange={(name, value) => handleChange(name, value)}
+                  onBlur={handleBlur}
+                  error={errors.location}
+                  touched={touched.location}
+                  placeholder="e.g., Bangalore"
+                />
                                  <ValidatedInput
-                   name="title"
-                   label="Job Title"
-                   value={manualForm.title}
-                   onChange={(name, value) => handleChange(name, value)}
-                   onBlur={handleBlur}
-                   error={errors.title}
-                   touched={touched.title}
-                   placeholder="e.g., Software Engineer"
-                 />
-                                 <ValidatedInput
-                   name="location"
-                   label="Location"
-                   value={manualForm.location}
-                   onChange={(name, value) => handleChange(name, value)}
-                   onBlur={handleBlur}
-                   error={errors.location}
-                   touched={touched.location}
-                   placeholder="e.g., Bangalore"
-                 />
-                 <ValidatedInput
                    name="csa_id"
-                   label="CSA ID"
+                   label="CSA ID (Primary Key)"
                    value={manualForm.csa_id}
                    onChange={(name, value) => handleChange(name, value)}
                    onBlur={handleBlur}
                    error={errors.csa_id}
                    touched={touched.csa_id}
-                   placeholder="6 character alphanumeric"
+                   placeholder="6 character alphanumeric (e.g., U2XKD2)"
                    maxLength={6}
                  />
-                                 <ValidatedSelect
-                   name="salary_band"
-                   label="Salary Band"
-                   options={[
-                     { value: '', label: 'Select salary band' },
-                     ...salaryBands.map(band => ({
-                       value: band.band,
-                       label: `${band.band}${band.experience_range ? ` (${band.experience_range})` : ''}`
-                     }))
-                   ]}
-                   value={manualForm.salary_band}
-                   onChange={handleSalaryBandChange}
-                   onBlur={handleBlur}
-                   error={errors.salary_band}
-                   touched={touched.salary_band}
-                   placeholder="Select salary band"
-                 />
-                                 <ValidatedSelect
-                   name="salary_rate"
-                   label="Rate Type"
-                   options={[
-                     { value: '', label: 'Select rate type' },
-                     { value: 'standard', label: 'Standard' },
-                     { value: 'ra1', label: 'RA1' },
-                     { value: 'ra2', label: 'RA2' }
-                   ]}
-                   value={manualForm.salary_rate}
-                   onChange={handleSalaryRateChange}
-                   onBlur={handleBlur}
-                   error={errors.salary_rate}
-                   touched={touched.salary_rate}
-                   placeholder="Select rate type"
-                 />
-                                 <ValidatedInput
-                   name="actual_salary"
-                   label="Actual Salary"
-                   value={manualForm.actual_salary}
-                   onChange={(name, value) => handleChange(name, value)}
-                   onBlur={handleBlur}
-                   error={errors.actual_salary}
-                   touched={touched.actual_salary}
-                   placeholder="Calculated automatically"
-                   readOnly
-                 />
-                 <ValidatedInput
-                   name="profit_percentage"
-                   label="Profit Percentage"
-                   value={manualForm.profit_percentage}
-                   onChange={handleProfitPercentageChange}
-                   onBlur={handleBlur}
-                   error={errors.profit_percentage}
-                   touched={touched.profit_percentage}
-                   placeholder="e.g., 15"
-                   type="number"
-                   min="0"
-                   max="100"
-                 />
-                 <ValidatedInput
-                   name="expected_package"
-                   label="Expected Package"
-                   value={manualForm.expected_package}
-                   onChange={(name, value) => handleChange(name, value)}
-                   onBlur={handleBlur}
-                   error={errors.expected_package}
-                   touched={touched.expected_package}
-                   placeholder="Calculated automatically"
-                   readOnly
-                 />
-                 <ValidatedInput
-                   name="start_date"
-                   label="Start Date"
-                   type="date"
-                   value={manualForm.start_date}
-                   onChange={(name, value) => handleChange(name, value)}
-                   onBlur={handleBlur}
-                   error={errors.start_date}
-                   touched={touched.start_date}
-                 />
-                 <ValidatedInput
-                   name="end_date"
-                   label="End Date"
-                   type="date"
-                   value={manualForm.end_date}
-                   onChange={(name, value) => handleChange(name, value)}
-                   onBlur={handleBlur}
-                   error={errors.end_date}
-                   touched={touched.end_date}
-                 />
-                 <ValidatedSelect
-                   name="priority"
-                   label="Priority"
-                   options={[
-                     { value: '', label: 'Select priority' },
-                     { value: 'low', label: 'Low' },
-                     { value: 'medium', label: 'Medium' },
-                     { value: 'high', label: 'High' }
-                   ]}
-                   value={manualForm.priority}
-                   onChange={(name, value) => handleChange(name, value)}
-                   onBlur={handleBlur}
-                   error={errors.priority}
-                   touched={touched.priority}
-                   placeholder="Select priority"
-                 />
-                 <ValidatedSelect
-                   name="assigned_hr"
-                   label="Assign to HR"
-                   options={hrOptions}
-                   value={manualForm.assigned_hr}
-                   onChange={(name, value) => handleChange(name, value)}
-                   onBlur={handleBlur}
-                   error={errors.assigned_hr}
-                   touched={touched.assigned_hr}
-                 />
+                <ValidatedSelect
+                  name="salary_band"
+                  label="Salary Band"
+                  options={[
+                    { value: '', label: 'Select salary band' },
+                    ...salaryBands.map(band => ({
+                      value: band.band,
+                      label: `${band.band}${band.experience_range ? ` (${band.experience_range})` : ''}`
+                    }))
+                  ]}
+                  value={manualForm.salary_band}
+                  onChange={handleSalaryBandChange}
+                  onBlur={handleBlur}
+                  error={errors.salary_band}
+                  touched={touched.salary_band}
+                  placeholder="Select salary band"
+                />
+                <ValidatedSelect
+                  name="salary_rate"
+                  label="Rate Type"
+                  options={[
+                    { value: '', label: 'Select rate type' },
+                    { value: 'standard', label: 'Standard' },
+                    { value: 'ra1', label: 'RA1' },
+                    { value: 'ra2', label: 'RA2' }
+                  ]}
+                  value={manualForm.salary_rate}
+                  onChange={handleSalaryRateChange}
+                  onBlur={handleBlur}
+                  error={errors.salary_rate}
+                  touched={touched.salary_rate}
+                  placeholder="Select rate type"
+                />
+                <ValidatedInput
+                  name="actual_salary"
+                  label="Actual Salary"
+                  value={manualForm.actual_salary}
+                  onChange={(name, value) => handleChange(name, value)}
+                  onBlur={handleBlur}
+                  error={errors.actual_salary}
+                  touched={touched.actual_salary}
+                  placeholder="Calculated automatically"
+                  readOnly
+                />
+                <ValidatedInput
+                  name="profit_percentage"
+                  label="Profit Percentage"
+                  value={manualForm.profit_percentage}
+                  onChange={handleProfitPercentageChange}
+                  onBlur={handleBlur}
+                  error={errors.profit_percentage}
+                  touched={touched.profit_percentage}
+                  placeholder="e.g., 15"
+                  type="number"
+                  min="0"
+                  max="100"
+                />
+                <ValidatedInput
+                  name="expected_package"
+                  label="Expected Package"
+                  value={manualForm.expected_package}
+                  onChange={(name, value) => handleChange(name, value)}
+                  onBlur={handleBlur}
+                  error={errors.expected_package}
+                  touched={touched.expected_package}
+                  placeholder="Calculated automatically"
+                  readOnly
+                />
+                <ValidatedInput
+                  name="start_date"
+                  label="Start Date"
+                  type="date"
+                  value={manualForm.start_date}
+                  onChange={(name, value) => handleChange(name, value)}
+                  onBlur={handleBlur}
+                  error={errors.start_date}
+                  touched={touched.start_date}
+                />
+                <ValidatedInput
+                  name="end_date"
+                  label="End Date"
+                  type="date"
+                  value={manualForm.end_date}
+                  onChange={(name, value) => handleChange(name, value)}
+                  onBlur={handleBlur}
+                  error={errors.end_date}
+                  touched={touched.end_date}
+                />
+                <ValidatedSelect
+                  name="priority"
+                  label="Priority"
+                  options={[
+                    { value: '', label: 'Select priority' },
+                    { value: 'low', label: 'Low' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'high', label: 'High' }
+                  ]}
+                  value={manualForm.priority}
+                  onChange={(name, value) => handleChange(name, value)}
+                  onBlur={handleBlur}
+                  error={errors.priority}
+                  touched={touched.priority}
+                  placeholder="Select priority"
+                />
+                <ValidatedSelect
+                  name="assigned_hr"
+                  label="Assign to HR"
+                  options={hrOptions}
+                  value={manualForm.assigned_hr}
+                  onChange={(name, value) => handleChange(name, value)}
+                  onBlur={handleBlur}
+                  error={errors.assigned_hr}
+                  touched={touched.assigned_hr}
+                />
               </div>
-                             <ValidatedInput
-                 name="description"
-                 label="Job Description"
-                 value={manualForm.description}
-                 onChange={(name, value) => handleChange(name, value)}
-                 onBlur={handleBlur}
-                 error={errors.description}
-                 touched={touched.description}
-                 placeholder="Detailed job description..."
-                 textarea
-                 rows={4}
-               />
+              <ValidatedInput
+                name="description"
+                label="Job Description"
+                value={manualForm.description}
+                onChange={(name, value) => handleChange(name, value)}
+                onBlur={handleBlur}
+                error={errors.description}
+                touched={touched.description}
+                placeholder="Detailed job description..."
+                textarea
+                rows={4}
+              />
               <button
                 type="submit"
                 disabled={uploading}
@@ -642,17 +656,10 @@ const AdminAddJob = () => {
         )}
       </AnimatePresence>
 
-      {/* CSV Upload Section */}
+      {/* CSV Section */}
       <AnimatePresence>
         {uploadMethod === 'csv' && (
-          <motion.div
-            key="csv-section"
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            variants={fadeInUp}
-            className="space-y-6 mb-6"
-          >
+          <>
             {/* CSV Upload Card */}
             <motion.div
               variants={fadeIn}
@@ -709,13 +716,18 @@ const AdminAddJob = () => {
               )}
             </motion.div>
 
-            {/* CSV Preview Card */}
+            {/* CSV Preview Card - Moved to appear right after upload */}
             {uploadedFile && (
               <motion.div
                 variants={fadeIn}
                 className={cardClass}
               >
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">CSV Preview</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <svg className="h-5 w-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  CSV Preview
+                </h3>
                 {previewData ? (
                   <div className="space-y-4">
                     <div
@@ -736,54 +748,60 @@ const AdminAddJob = () => {
                           : 'Missing required columns'}
                       </span>
                     </div>
-                    <div className="overflow-x-auto rounded-xl border border-gray-100">
+                    <div className="overflow-x-auto rounded-xl border border-gray-100 shadow-sm">
                       <table className="min-w-full bg-white rounded-xl">
                         <thead>
-                          <tr>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          <tr className="bg-gray-50">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Job Title
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Description
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Location
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
+                              CSA ID
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Salary Band
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Rate Type
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Actual Salary
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Profit Percentage
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Expected Package
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Priority
                             </th>
-                            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
                               Assign to HR
                             </th>
                           </tr>
                         </thead>
                         <tbody>
                           {previewData.data.map(row => (
-                            <tr key={row.id} className="hover:bg-gray-50 transition">
-                              <td className="px-4 py-2 text-sm text-gray-900">{row.title}</td>
+                            <tr key={row.id} className="hover:bg-gray-50 transition border-b">
+                              <td className="px-4 py-3 text-sm text-gray-900 font-medium">{row.title}</td>
                               <td
-                                className="px-4 py-2 text-sm text-gray-900 max-w-xs truncate"
+                                className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate"
                                 title={row.description}
                               >
                                 {row.description}
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">{row.location}</td>
-                              <td className="px-4 py-2 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900">{row.location}</td>
+                              <td className="px-4 py-3 text-sm text-gray-900 font-mono bg-blue-50 px-2 py-1 rounded">
+                                {row.csa_id}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900">
                                 <select
                                   value={row.salary_band || ''}
                                   onChange={e => handleCSVSalaryBandChange(row.id, e.target.value)}
@@ -797,7 +815,7 @@ const AdminAddJob = () => {
                                   ))}
                                 </select>
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900">
                                 <select
                                   value={row.salary_rate || ''}
                                   onChange={e => handleCSVSalaryRateChange(row.id, e.target.value)}
@@ -809,7 +827,7 @@ const AdminAddJob = () => {
                                   <option value="ra2">RA2</option>
                                 </select>
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900">
                                 <input
                                   type="text"
                                   value={row.actual_salary || ''}
@@ -818,7 +836,7 @@ const AdminAddJob = () => {
                                   placeholder="Calculated automatically"
                                 />
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900">
                                 <input
                                   type="text"
                                   value={row.profit_percentage || ''}
@@ -826,7 +844,7 @@ const AdminAddJob = () => {
                                   className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
                                 />
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900">
                                 <input
                                   type="text"
                                   value={row.expected_package || ''}
@@ -835,7 +853,7 @@ const AdminAddJob = () => {
                                   placeholder="Calculated automatically"
                                 />
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900">
                                 <select
                                   value={row.priority || ''}
                                   onChange={e => handleCSVPriorityChange(row.id, e.target.value)}
@@ -847,7 +865,7 @@ const AdminAddJob = () => {
                                   <option value="high">High</option>
                                 </select>
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">
+                              <td className="px-4 py-3 text-sm text-gray-900">
                                 <select
                                   value={row.assigned_hr}
                                   onChange={e => handleAssignHRChange(row.id, e.target.value)}
@@ -888,147 +906,153 @@ const AdminAddJob = () => {
                     <p className="text-xs text-gray-400">Upload a CSV file to see parsed data</p>
                   </div>
                 )}
+              </motion.div>
+            )}
 
-                {/* CSV Format Requirements */}
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">CSV Format Requirements</h4>
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <div>
-                        <h5 className="font-semibold text-blue-900 mb-3 flex items-center">
-                          <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                          </svg>
-                          Required Columns
-                        </h5>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                            <div className="flex items-center">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                              <span className="font-mono font-semibold text-blue-700">title</span>
-                            </div>
-                            <span className="text-sm text-gray-600">Job title</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                            <div className="flex items-center">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                              <span className="font-mono font-semibold text-blue-700">description</span>
-                            </div>
-                            <span className="text-sm text-gray-600">Job description</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                            <div className="flex items-center">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                              <span className="font-mono font-semibold text-blue-700">location</span>
-                            </div>
-                            <span className="text-sm text-gray-600">Job location</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                            <div className="flex items-center">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                              <span className="font-mono font-semibold text-blue-700">csa_id</span>
-                            </div>
-                            <span className="text-sm text-gray-600">CSA ID</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                            <div className="flex items-center">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                              <span className="font-mono font-semibold text-blue-700">start_date</span>
-                            </div>
-                            <span className="text-sm text-gray-600">Start Date (YYYY-MM-DD)</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                            <div className="flex items-center">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                              <span className="font-mono font-semibold text-blue-700">end_date</span>
-                            </div>
-                            <span className="text-sm text-gray-600">End Date (YYYY-MM-DD)</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 bg-green-100 rounded-lg border border-green-200">
-                            <div className="flex items-center">
-                              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                              <span className="font-mono font-semibold text-green-700">profit_percentage</span>
-                            </div>
-                            <span className="text-sm text-gray-600">Profit % (calculated in preview)</span>
-                          </div>
-                          <div className="flex items-center justify-between p-3 bg-green-100 rounded-lg border border-green-200">
-                            <div className="flex items-center">
-                              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-                              <span className="font-mono font-semibold text-green-700">expected_package</span>
-                            </div>
-                            <span className="text-sm text-gray-600">Expected Package (auto-calculated)</span>
-                          </div>
+            {/* CSV Requirements Card - Always Visible */}
+            <motion.div
+              variants={fadeIn}
+              className={cardClass}
+            >
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <svg className="h-5 w-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                CSV Format Requirements
+              </h3>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div>
+                    <h5 className="font-semibold text-blue-900 mb-3 flex items-center">
+                      <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Required Columns
+                    </h5>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                          <span className="font-mono font-semibold text-blue-700">title</span>
                         </div>
+                        <span className="text-sm text-gray-600">Job title</span>
                       </div>
-                      <div>
-                        <h5 className="font-semibold text-blue-900 mb-3 flex items-center">
-                          <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                          </svg>
-                          Example Format
-                        </h5>
-                        <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                          <div className="mb-2">
-                            <span className="text-gray-400"># Header row</span>
-                          </div>
-                                                     <div className="mb-1">
-                             <span className="text-yellow-400">title</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-yellow-400">description</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-yellow-400">location</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-yellow-400">csa_id</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-yellow-400">start_date</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-yellow-400">end_date</span>
-                           </div>
-                          <div className="mt-4 mb-2">
-                            <span className="text-gray-400"># Data rows</span>
-                          </div>
-                                                     <div className="mb-1">
-                             <span className="text-green-400">"Software Engineer"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"Develop web applications using React"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"Bangalore"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"u452jsx"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"2025-01-15"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"2025-02-15"</span>
-                           </div>
-                           <div>
-                             <span className="text-green-400">"Data Analyst"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"Analyze data and create reports"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"Mumbai"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"u452jsy"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"2025-01-20"</span>
-                             <span className="text-gray-400">,</span>
-                             <span className="text-green-400">"2025-02-20"</span>
-                           </div>
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                          <span className="font-mono font-semibold text-blue-700">description</span>
                         </div>
-                        <div className="mt-3 text-xs text-blue-700 bg-blue-100 p-3 rounded-lg">
-                          <div className="font-semibold mb-1">💡 Tips:</div>
-                          <ul className="space-y-1">
-                            <li>• Use quotes around text values to handle commas</li>
-                            <li>• Ensure all required columns are present</li>
-                            <li>• Don't include empty rows at the end</li>
-                          </ul>
+                        <span className="text-sm text-gray-600">Job description</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                          <span className="font-mono font-semibold text-blue-700">location</span>
                         </div>
+                        <span className="text-sm text-gray-600">Job location</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                          <span className="font-mono font-semibold text-yellow-700">csa_id</span>
+                        </div>
+                        <span className="text-sm text-gray-600">Primary Key (6 alphanumeric)</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                          <span className="font-mono font-semibold text-blue-700">start_date</span>
+                        </div>
+                        <span className="text-sm text-gray-600">Start Date (YYYY-MM-DD)</span>
+                      </div>
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                          <span className="font-mono font-semibold text-blue-700">end_date</span>
+                        </div>
+                        <span className="text-sm text-gray-600">End Date (YYYY-MM-DD)</span>
                       </div>
                     </div>
                   </div>
+                  <div>
+                    <h5 className="font-semibold text-blue-900 mb-3 flex items-center">
+                      <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                      </svg>
+                      Example Format
+                    </h5>
+                    <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                      <div className="mb-2">
+                        <span className="text-gray-400"># Header row</span>
+                      </div>
+                      <div className="mb-1">
+                        <span className="text-yellow-400">title</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-yellow-400">description</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-yellow-400">location</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-yellow-400">csa_id</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-yellow-400">start_date</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-yellow-400">end_date</span>
+                      </div>
+                      <div className="mt-4 mb-2">
+                        <span className="text-gray-400"># Data rows</span>
+                      </div>
+                      <div className="mb-1">
+                        <span className="text-green-400">"Software Engineer"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"Develop web applications using React"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"Bangalore"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"U2XKD2"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"2025-01-15"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"2025-02-15"</span>
+                      </div>
+                      <div>
+                        <span className="text-green-400">"Data Analyst"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"Analyze data and create reports"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"Mumbai"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"A1B2C3"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"2025-01-20"</span>
+                        <span className="text-gray-400">,</span>
+                        <span className="text-green-400">"2025-02-20"</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xs text-blue-700 bg-blue-100 p-3 rounded-lg">
+                      <div className="font-semibold mb-1">💡 Tips:</div>
+                      <ul className="space-y-1">
+                        <li>• Use quotes around text values to handle commas</li>
+                        <li>• Ensure all required columns are present</li>
+                        <li>• Don't include empty rows at the end</li>
+                        <li>• CSA ID must be unique (6 alphanumeric characters)</li>
+                      </ul>
+                    </div>
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        onClick={downloadSampleCSV}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Download Sample CSV
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </motion.div>
-            )}
-          </motion.div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </motion.div>

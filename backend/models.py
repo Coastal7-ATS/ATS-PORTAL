@@ -70,10 +70,10 @@ class CandidateBase(BaseModel):
     name: str
     email: str
     phone: str
+    pan_number: str  # Made mandatory
     
     # Basic Information
     title_position: Optional[str] = None
-    pan_number: Optional[str] = None
     passport_number: Optional[str] = None
     current_location: Optional[str] = None
     hometown: Optional[str] = None
@@ -195,10 +195,10 @@ class CandidateUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    pan_number: Optional[str] = None  # Keep optional for updates to allow partial updates
     
     # Basic Information
     title_position: Optional[str] = None
-    pan_number: Optional[str] = None
     passport_number: Optional[str] = None
     current_location: Optional[str] = None
     hometown: Optional[str] = None

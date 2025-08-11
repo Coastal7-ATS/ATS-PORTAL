@@ -110,6 +110,22 @@ async def get_candidate_details(candidate_id: str, current_user: dict = Depends(
 async def create_candidate(candidate: CandidateCreate, current_user: dict = Depends(get_current_user)):
     db = await get_database()
     
+    # Validate email format
+    import re
+    email_pattern = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+    if not email_pattern.match(candidate.email):
+        raise HTTPException(status_code=400, detail="Please enter a valid email address with @ symbol")
+    
+    # Validate phone format (10 digits)
+    phone_pattern = re.compile(r'^\d{10}$')
+    if not phone_pattern.match(candidate.phone):
+        raise HTTPException(status_code=400, detail="Phone number must contain exactly 10 digits")
+    
+    # Validate PAN number format
+    pan_pattern = re.compile(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$')
+    if not pan_pattern.match(candidate.pan_number):
+        raise HTTPException(status_code=400, detail="PAN Number must be in format ABCDE1234F")
+    
     candidate_data = candidate.model_dump()
     created_at = datetime.utcnow()
     candidate_data["created_at"] = created_at
@@ -168,6 +184,27 @@ async def update_candidate(
         update_data["email"] = current_candidate.get("email")
     if not update_data.get("phone"):
         update_data["phone"] = current_candidate.get("phone")
+    if not update_data.get("pan_number"):
+        update_data["pan_number"] = current_candidate.get("pan_number")
+    
+    # Validate email format if provided
+    import re
+    if update_data.get("email"):
+        email_pattern = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+        if not email_pattern.match(update_data["email"]):
+            raise HTTPException(status_code=400, detail="Please enter a valid email address with @ symbol")
+    
+    # Validate phone format if provided
+    if update_data.get("phone"):
+        phone_pattern = re.compile(r'^\d{10}$')
+        if not phone_pattern.match(update_data["phone"]):
+            raise HTTPException(status_code=400, detail="Phone number must contain exactly 10 digits")
+    
+    # Validate PAN number format if provided
+    if update_data.get("pan_number"):
+        pan_pattern = re.compile(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$')
+        if not pan_pattern.match(update_data["pan_number"]):
+            raise HTTPException(status_code=400, detail="PAN Number must be in format ABCDE1234F")
     
     # Remove None values to avoid overwriting with None
     update_data = {k: v for k, v in update_data.items() if v is not None}

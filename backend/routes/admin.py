@@ -449,6 +449,9 @@ async def get_admin_dashboard(
     total_candidates = await db.recruitment_portal.candidates.count_documents(candidate_filter)
     selected_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "selected"})
     rejected_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "rejected"})
+    interview_selected_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "interview_selected"})
+    interview_reject_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "interview_reject"})
+    placed_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "placed"})
     
     # Get HR user count (no filter for this)
     hr_users = await db.recruitment_portal.users.count_documents({"role": "hr"})
@@ -474,7 +477,10 @@ async def get_admin_dashboard(
                 "demand_closed_jobs": len([j for j in hr_jobs if j["status"] == "demand closed"]),
                 "total_candidates": len(hr_candidates),
                 "selected_candidates": len([c for c in hr_candidates if c["status"] == "selected"]),
-                "rejected_candidates": len([c for c in hr_candidates if c["status"] == "rejected"])
+                "rejected_candidates": len([c for c in hr_candidates if c["status"] == "rejected"]),
+                "interview_selected_candidates": len([c for c in hr_candidates if c["status"] == "interview_selected"]),
+                "interview_reject_candidates": len([c for c in hr_candidates if c["status"] == "interview_reject"]),
+                "placed_candidates": len([c for c in hr_candidates if c["status"] == "placed"])
             }
     
     return {
@@ -486,6 +492,9 @@ async def get_admin_dashboard(
         "total_candidates": total_candidates,
         "selected_candidates": selected_candidates,
         "rejected_candidates": rejected_candidates,
+        "interview_selected_candidates": interview_selected_candidates,
+        "interview_reject_candidates": interview_reject_candidates,
+        "placed_candidates": placed_candidates,
         "hr_users": hr_users,
         "hr_performance": hr_performance,
         "filters_applied": {

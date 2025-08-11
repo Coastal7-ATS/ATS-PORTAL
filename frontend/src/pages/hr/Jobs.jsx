@@ -172,8 +172,29 @@ const HRJobs = () => {
   }
 
   const handleSaveCandidate = async () => {
-    if (!candidateForm.name || !candidateForm.email || !candidateForm.phone) {
-      toast.error('Please fill in all required fields (Name, Email, Phone)')
+    if (!candidateForm.name || !candidateForm.email || !candidateForm.phone || !candidateForm.pan_number) {
+      toast.error('Please fill in all required fields (Name, Email, Phone, PAN Number)')
+      return
+    }
+    
+    // Validate email format
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailPattern.test(candidateForm.email)) {
+      toast.error('Please enter a valid email address with @ symbol')
+      return
+    }
+    
+    // Validate phone format (10 digits)
+    const phonePattern = /^\d{10}$/
+    if (!phonePattern.test(candidateForm.phone)) {
+      toast.error('Phone number must contain exactly 10 digits')
+      return
+    }
+    
+    // Validate PAN number format
+    const panPattern = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/
+    if (!panPattern.test(candidateForm.pan_number)) {
+      toast.error('PAN Number must be in format ABCDE1234F')
       return
     }
     try {
@@ -427,9 +448,9 @@ const HRJobs = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {job.csa_id || 'N/A'}
-                      </div>
+                        <div className="text-sm text-gray-900">
+                          {job.csa_id || 'N/A'}
+                        </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">
@@ -992,6 +1013,8 @@ const AddCandidateForm = ({ formData, setFormData, onSave }) => {
               onChange={e => handleChange('email', e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               required
+              pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+              title="Please enter a valid email address with @ symbol"
             />
           </div>
           <div>
@@ -1002,16 +1025,23 @@ const AddCandidateForm = ({ formData, setFormData, onSave }) => {
               onChange={e => handleChange('phone', e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               required
+              pattern="[0-9]{10}"
+              maxLength="10"
+              title="Phone number must contain exactly 10 digits"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">PAN Number</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">PAN Number *</label>
             <input
               type="text"
               value={formData.pan_number || ''}
               onChange={e => handleChange('pan_number', e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               placeholder="ABCDE1234F"
+              required
+              pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
+              maxLength="10"
+              title="PAN Number is mandatory and must be in format ABCDE1234F"
             />
           </div>
           <div>

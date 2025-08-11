@@ -239,12 +239,29 @@ const Layout = () => {
         <div className="flex flex-col flex-grow bg-white shadow-2xl border-r border-gray-200">
           {/* Desktop Header */}
           <div className="flex items-center h-20 px-6 border-b border-gray-200">
-            <img
-              src="/Coastal_Seven_Consulting_color.png"
-              alt="Coastal Seven Consulting Logo"
-              className="h-12 w-auto object-contain transition-transform duration-200 hover:scale-105"
-              style={{ maxWidth: '220px' }}
-            />
+            <button
+              type="button"
+              onClick={() => {
+                // Redirect to the correct dashboard based on user role and reload
+                if (user?.role === 'admin') {
+                  window.location.href = '/admin/dashboard';
+                } else if (user?.role === 'hr') {
+                  window.location.href = '/hr/dashboard';
+                } else {
+                  window.location.href = '/dashboard';
+                }
+              }}
+              className="focus:outline-none"
+              style={{ display: 'flex', alignItems: 'center' }}
+              title="Go to Dashboard"
+            >
+              <img
+                src="/Coastal_Seven_Consulting_color.png"
+                alt="Coastal Seven Consulting Logo"
+                className="h-12 w-auto object-contain transition-transform duration-200 hover:scale-105"
+                style={{ maxWidth: '220px' }}
+              />
+            </button>
           </div>
 
           {/* Desktop Navigation */}
