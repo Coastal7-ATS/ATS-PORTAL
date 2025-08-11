@@ -729,3 +729,27 @@ async def download_hr_report(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     ) 
+
+@router.delete("/jobs/{job_id}")
+async def delete_job(job_id: str, current_user: dict = Depends(get_current_admin_user)):
+    db = await get_database()
+    
+    # Find job by job_id field first, then by _id
+    job = await db.recruitment_portal.jobs.find_one({"job_id": job_id})
+    if not job:
+        # Fallback to _id if job_id not found
+        try:
+            job = await db.recruitment_portal.jobs.find_one({"_id": ObjectId(job_id)})
+        except:
+            pass
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Delete the job
+    result = await db.recruitment_portal.jobs.delete_one({"_id": job["_id"]})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    return {"message": "Job deleted successfully"} 

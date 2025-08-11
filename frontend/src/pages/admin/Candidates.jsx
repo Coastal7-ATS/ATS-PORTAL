@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, Edit, Save, X, Download } from 'lucide-react'
+import { Eye, Edit, Save, X, Download, Trash2 } from 'lucide-react'
 import api from '../../services/api'
 import { toast } from 'react-toastify'
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel, TextRun, BorderStyle } from 'docx'
@@ -62,6 +62,20 @@ const AdminCandidates = () => {
       fetchCandidates()
     } catch (error) {
       toast.error('Failed to update candidate status')
+    }
+  }
+
+  const handleDeleteCandidate = async (candidateId) => {
+    if (window.confirm('Are you sure you want to delete this candidate? This action cannot be undone.')) {
+      try {
+        await api.delete(`/candidates/${candidateId}`)
+        toast.success('Candidate deleted successfully')
+        setShowViewModal(false)
+        setSelectedCandidate(null)
+        fetchCandidates()
+      } catch (error) {
+        toast.error(error.response?.data?.detail || 'Failed to delete candidate')
+      }
     }
   }
 
@@ -1205,6 +1219,13 @@ const AdminCandidates = () => {
                         >
                           <Download className="h-4 w-4" />
                         </button>
+                        <button
+                          onClick={() => handleDeleteCandidate(candidate.id)}
+                          className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors duration-200"
+                          title="Delete Candidate"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </motion.tr>
@@ -1250,6 +1271,13 @@ const AdminCandidates = () => {
                           title="Export Details"
                         >
                           <Download className="h-4 w-4" /> Export
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCandidate(selectedCandidate.id)}
+                          className="flex items-center gap-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                          title="Delete Candidate"
+                        >
+                          <Trash2 className="h-4 w-4" /> Delete
                         </button>
                         <button
                           onClick={() => setShowViewModal(false)}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Briefcase, Plus, Eye, Pencil, Calendar, MapPin, DollarSign, User, Search, Filter, X } from 'lucide-react'
+import { Briefcase, Plus, Eye, Pencil, Calendar, MapPin, User, Search, Filter, X, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../../services/api'
@@ -70,6 +70,18 @@ const AdminJobs = () => {
 
   const handleViewJob = (job) => setViewJob(job)
   const handleEditJob = (job) => setEditJob(job)
+
+  const handleDeleteJob = async (jobId) => {
+    if (window.confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+      try {
+        await api.delete(`/admin/jobs/${jobId}`)
+        toast.success('Job deleted successfully')
+        fetchJobs()
+      } catch (error) {
+        toast.error(error.response?.data?.detail || 'Failed to delete job')
+      }
+    }
+  }
 
   const handleUpdateJob = async (jobId, updates) => {
     try {
@@ -388,7 +400,8 @@ const AdminJobs = () => {
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Job Details</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Salary Info</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Location & Timeline</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Priority & CSA</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Priority</th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">CSA ID</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Assigned HR</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
@@ -417,7 +430,7 @@ const AdminJobs = () => {
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1 text-sm text-gray-700">
-                          <DollarSign className="h-3 w-3 text-gray-400" />
+                          <span className="text-gray-400">₹</span>
                           <span>{job.salary_package || 'Not specified'}</span>
                         </div>
                         <div className="flex items-center gap-1 text-sm text-gray-700">
@@ -429,11 +442,11 @@ const AdminJobs = () => {
                           <span>{job.salary_rate ? job.salary_rate.charAt(0).toUpperCase() + job.salary_rate.slice(1) : 'Not specified'}</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-gray-600">
-                          <DollarSign className="h-3 w-3 text-gray-400" />
+                          <span className="text-gray-400">₹</span>
                           <span>Profit: {job.profit_percentage ? `${job.profit_percentage}%` : 'Not specified'}</span>
                         </div>
                         <div className="flex items-center gap-1 text-xs text-gray-600">
-                          <DollarSign className="h-3 w-3 text-gray-400" />
+                          <span className="text-gray-400">₹</span>
                           <span>Expected: {job.expected_package || 'Not specified'}</span>
                         </div>
                       </div>
@@ -455,15 +468,15 @@ const AdminJobs = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-gray-600">
-                          <User className="h-3 w-3 text-gray-400" />
-                          <span>{job.priority ? job.priority.charAt(0).toUpperCase() + job.priority.slice(1) : 'Not specified'}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-gray-600">
-                          <User className="h-3 w-3 text-gray-400" />
-                          <span>{job.csa_id || 'N/A'}</span>
-                        </div>
+                      <div className="flex items-center gap-1 text-sm text-gray-700">
+                        <User className="h-3 w-3 text-gray-400" />
+                        <span>{job.priority ? job.priority.charAt(0).toUpperCase() + job.priority.slice(1) : 'Not specified'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1 text-sm text-gray-700">
+                        <User className="h-3 w-3 text-gray-400" />
+                        <span>{job.csa_id || 'N/A'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -492,6 +505,13 @@ const AdminJobs = () => {
                           title="Edit Job"
                         >
                           <Pencil className="h-4 w-4 text-green-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteJob(job.job_id || job.id)}
+                          className="p-1 hover:bg-red-50 rounded transition-colors duration-200"
+                          title="Delete Job"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-600" />
                         </button>
                       </div>
                     </td>

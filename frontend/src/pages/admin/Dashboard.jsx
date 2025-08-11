@@ -9,7 +9,6 @@ import {
   Plus,
   Calendar,
   MapPin,
-  DollarSign,
   Filter,
   UserCheck,
   Download,

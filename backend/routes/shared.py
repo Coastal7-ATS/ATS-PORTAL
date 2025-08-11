@@ -220,6 +220,34 @@ async def update_candidate_status(
     await db.recruitment_portal.application_history.insert_one(history_entry)
     return {"message": "Candidate status updated successfully"}
 
+@router.delete("/candidates/{candidate_id}")
+async def delete_candidate(candidate_id: str, current_user: dict = Depends(get_current_user)):
+    db = await get_database()
+    
+    # Check if candidate exists
+    candidate = await db.recruitment_portal.candidates.find_one({"_id": ObjectId(candidate_id)})
+    
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    # Check permissions - only admin or the HR who created the candidate can delete
+    if current_user.get("role") != "admin":
+        # For HR users, check if they created this candidate or if it's assigned to their job
+        if candidate.get("created_by") != str(current_user["_id"]):
+            # Check if the candidate is assigned to a job that belongs to this HR
+            if candidate.get("job_id"):
+                job = await db.recruitment_portal.jobs.find_one({"job_id": candidate["job_id"]})
+                if not job or job.get("assigned_hr") != str(current_user["_id"]):
+                    raise HTTPException(status_code=403, detail="You don't have permission to delete this candidate")
+    
+    # Delete the candidate
+    result = await db.recruitment_portal.candidates.delete_one({"_id": ObjectId(candidate_id)})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    return {"message": "Candidate deleted successfully"}
+
 @router.get("/application-history/{candidate_id}")
 async def get_application_history(candidate_id: str, current_user: dict = Depends(get_current_user)):
     db = await get_database()

@@ -10,7 +10,6 @@ import {
   Eye,
   Calendar,
   MapPin,
-  DollarSign,
   User,
   TrendingUp
 } from 'lucide-react'
@@ -412,7 +411,7 @@ const HRDashboard = () => {
                         <span>{job.location || 'Remote'}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <DollarSign className="h-3 w-3" />
+                        <span className="text-gray-400">₹</span>
                         <span>{job.ctc || 'Not specified'}</span>
                       </div>
                       <div className="flex items-center gap-2">
