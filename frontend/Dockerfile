@@ -22,6 +22,9 @@ FROM nginx:alpine
 # Copy built application from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Copy the image file to the production stage
+COPY --from=build /app/Coastal_Seven_Consulting_color.png /usr/share/nginx/html/
+
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
