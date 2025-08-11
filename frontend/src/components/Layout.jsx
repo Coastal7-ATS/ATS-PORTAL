@@ -196,7 +196,7 @@ const Layout = () => {
           {/* Mobile Header */}
           <div className="flex h-20 items-center justify-between px-6 border-b border-gray-200">
             <img
-              src="/Coastal_Seven_Consulting_color.png"
+              src="./Coastal_Seven_Consulting_color.png"
               alt="Coastal Seven Consulting Logo"
               className="h-12 w-auto object-contain transition-transform duration-200 hover:scale-105"
               style={{ maxWidth: '180px' }}
@@ -256,7 +256,7 @@ const Layout = () => {
               title="Go to Dashboard"
             >
               <img
-                src="/Coastal_Seven_Consulting_color.png"
+                src="./Coastal_Seven_Consulting_color.png"
                 alt="Coastal Seven Consulting Logo"
                 className="h-12 w-auto object-contain transition-transform duration-200 hover:scale-105"
                 style={{ maxWidth: '220px' }}

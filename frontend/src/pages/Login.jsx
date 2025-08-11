@@ -108,7 +108,7 @@ const Login = () => {
             className="mx-auto w-24 h-24 bg-white/90 backdrop-blur-md rounded-2xl shadow-large border border-white/50 flex items-center justify-center mb-4"
           >
             <img
-              src="/Coastal_Seven_Consulting_color.png"
+              src="./Coastal_Seven_Consulting_color.png"
               alt="Coastal Seven Consulting Logo"
               className="w-20 h-20 object-contain"
             />
