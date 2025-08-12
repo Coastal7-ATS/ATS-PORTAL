@@ -11,7 +11,7 @@ app = FastAPI(title="Recruitment Portal API", version="1.0.0")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost", "http://localhost:3000", "http://localhost:80", "http://13.204.47.60", "http://13.204.47.60:80"],
+    allow_origins=["http://localhost", "http://localhost:3000", "http://localhost:80", "http://3.109.153.64", "http://3.109.153.64:80"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
