@@ -1,6 +1,36 @@
-title,description,location,ctc,csa_id,start_date,end_date
-Software Engineer,Develop and maintain web applications using React and Node.js,Bangalore,8-12 LPA,ABC123,2024-01-15,2024-03-15
-Data Analyst,Analyze data and create reports using Python and SQL,Mumbai,6-10 LPA,DEF456,2024-01-20,2024-02-20
-DevOps Engineer,Manage cloud infrastructure and CI/CD pipelines,Hyderabad,10-15 LPA,GHI789,2024-01-25,2024-04-25
-UX Designer,Design user interfaces and improve user experience,Delhi,7-12 LPA,JKL012,2024-02-01,2024-03-01
-Product Manager,Lead product development and strategy,Chennai,12-18 LPA,MNO345,2024-02-05,2024-05-05
+title,description,location,csa_id,start_date,end_date
+Software Engineer,"Develop and maintain web applications using React and Node.js. Responsibilities include:
+• Building responsive user interfaces
+• Implementing RESTful APIs
+• Writing clean, maintainable code
+• Collaborating with cross-functional teams
+• Code review and testing
+• Performance optimization",Bangalore,ABC123,2024-01-15,2024-03-15
+Data Analyst,"Analyze data and create reports using Python and SQL. Key tasks:
+• Data cleaning and preprocessing
+• Statistical analysis and modeling
+• Creating visualizations and dashboards
+• Presenting findings to stakeholders
+• Database querying and optimization
+• Report generation and automation",Mumbai,DEF456,2024-01-20,2024-02-20
+DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include:
+• AWS/Azure infrastructure management
+• Docker containerization
+• Jenkins pipeline configuration
+• Monitoring and logging setup
+• Security implementation
+• Disaster recovery planning",Hyderabad,GHI789,2024-01-25,2024-04-25
+UX Designer,"Design user interfaces and improve user experience. Responsibilities:
+• User research and usability testing
+• Wireframing and prototyping
+• Visual design and branding
+• Interaction design
+• Accessibility compliance
+• Design system maintenance",Delhi,JKL012,2024-02-01,2024-03-01
+Product Manager,"Lead product development and strategy. Key areas:
+• Product roadmap planning
+• Market research and analysis
+• Stakeholder management
+• Agile development coordination
+• Feature prioritization
+• Success metrics tracking",Chennai,MNO345,2024-02-05,2024-05-05

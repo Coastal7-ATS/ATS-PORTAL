@@ -21,16 +21,44 @@ MANUAL_JOB_STATUSES = ["open", "closed", "submitted"]
 async def upload_csv(file: UploadFile = File(...), current_user: dict = Depends(get_current_admin_user)):
     db = await get_database()
     
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+    # Check file extension
+    file_extension = file.filename.lower().split('.')[-1]
+    if file_extension not in ['csv', 'xlsx', 'xls']:
+        raise HTTPException(status_code=400, detail="Only CSV (.csv) and Excel (.xlsx, .xls) files are allowed")
     
     try:
-        # Read CSV file
-        df = pd.read_csv(file.file)
+        # Read file based on extension
+        if file_extension == 'csv':
+            df = pd.read_csv(file.file)
+        else:  # Excel files
+            df = pd.read_excel(file.file, engine='openpyxl')
         
-        # Validate required columns
-        required_columns = ['title', 'description', 'location', 'ctc', 'csa_id', 'start_date', 'end_date']
-        missing_columns = [col for col in required_columns if col not in df.columns]
+        # Validate required columns with flexible naming
+        required_columns = ['title', 'description', 'location', 'csa_id', 'start_date', 'end_date']
+        column_mapping = {
+            'title': ['title', 'job title', 'job_title'],
+            'description': ['description', 'job description', 'job_description'],
+            'location': ['location'],
+            'csa_id': ['csa_id', 'csa id', 'csaid'],
+            'start_date': ['start_date', 'start date', 'startdate'],
+            'end_date': ['end_date', 'end date', 'enddate']
+        }
+        
+        # Map actual columns to required columns
+        actual_columns = [col.lower().strip() for col in df.columns]
+        mapped_columns = {}
+        missing_columns = []
+        
+        for required_col, possible_names in column_mapping.items():
+            found = False
+            for possible_name in possible_names:
+                if possible_name in actual_columns:
+                    mapped_columns[required_col] = df.columns[actual_columns.index(possible_name)]
+                    found = True
+                    break
+            if not found:
+                missing_columns.append(required_col)
+        
         if missing_columns:
             raise HTTPException(status_code=400, detail=f"Missing required columns: {missing_columns}")
         
@@ -39,20 +67,30 @@ async def upload_csv(file: UploadFile = File(...), current_user: dict = Depends(
             # Generate unique job ID
             job_id = f"jb{datetime.now().strftime('%m%d%H%M')}{random.randint(10, 99)}"
             
-            # Parse dates from CSV
-            start_date = datetime.fromisoformat(row['start_date']) if row['start_date'] else datetime.now(timezone.utc)
-            end_date = datetime.fromisoformat(row['end_date']) if row['end_date'] else datetime.now(timezone.utc)
+            # Parse dates from file
+            start_date_str = str(row[mapped_columns['start_date']]) if pd.notna(row[mapped_columns['start_date']]) else None
+            end_date_str = str(row[mapped_columns['end_date']]) if pd.notna(row[mapped_columns['end_date']]) else None
+            
+            try:
+                start_date = pd.to_datetime(start_date_str).replace(tzinfo=timezone.utc) if start_date_str else datetime.now(timezone.utc)
+                end_date = pd.to_datetime(end_date_str).replace(tzinfo=timezone.utc) if end_date_str else datetime.now(timezone.utc)
+            except:
+                start_date = datetime.now(timezone.utc)
+                end_date = datetime.now(timezone.utc)
+            
+            # Clean and validate CSA ID
+            csa_id = str(row[mapped_columns['csa_id']]).strip() if pd.notna(row[mapped_columns['csa_id']]) else ""
             
             job_data = {
                 "job_id": job_id,
-                "title": row['title'],
-                "description": row['description'],
-                "location": row['location'],
-                "salary_package": row['ctc'],
-                "csa_id": row['csa_id'],
+                "title": str(row[mapped_columns['title']]).strip() if pd.notna(row[mapped_columns['title']]) else "",
+                "description": str(row[mapped_columns['description']]).strip() if pd.notna(row[mapped_columns['description']]) else "",
+                "location": str(row[mapped_columns['location']]).strip() if pd.notna(row[mapped_columns['location']]) else "",
+                "csa_id": csa_id,
                 "start_date": start_date,
                 "end_date": end_date,
-                "source_company": "CSV Upload",
+                "salary_package": "",  # No longer required in new format
+                "source_company": f"{file_extension.upper()} Upload",
                 "uploaded_by": str(current_user["_id"]),
                 "status": "open",
                 "created_at": datetime.now(timezone.utc)
@@ -61,10 +99,10 @@ async def upload_csv(file: UploadFile = File(...), current_user: dict = Depends(
             result = await db.recruitment_portal.jobs.insert_one(job_data)
             jobs_added += 1
         
-        return {"message": f"Successfully uploaded {jobs_added} jobs"}
+        return {"message": f"Successfully uploaded {jobs_added} jobs from {file_extension.upper()} file"}
         
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error processing CSV: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Error processing {file_extension.upper()} file: {str(e)}")
 
 @router.post("/add-job")
 async def add_job(job_data: dict, current_user: dict = Depends(get_current_admin_user)):
@@ -109,20 +147,27 @@ async def add_jobs_bulk(jobs_data: List[dict], current_user: dict = Depends(get_
             status = "open"
         job_data["status"] = status
         job_data["created_at"] = datetime.now(timezone.utc)
-        # Handle salary package - use actual_salary if provided, otherwise use ctc for backward compatibility
-        if "actual_salary" in job_data:
-            job_data["salary_package"] = job_data["actual_salary"]
-        elif "ctc" in job_data:
-            job_data["salary_package"] = job_data["ctc"]
-        else:
-            job_data["salary_package"] = ""
-        job_data["source_company"] = "CSV Upload"
+        
+        # Handle salary package - support multiple field names for backward compatibility
+        salary_fields = ['actual_salary', 'ctc', 'package', 'salary_package']
+        salary_package = ""
+        for field in salary_fields:
+            if field in job_data and job_data[field]:
+                salary_package = str(job_data[field])
+                break
+        job_data["salary_package"] = salary_package
+        
+        job_data["source_company"] = "File Upload"
         
         # Set default dates if not provided
-        if "start_date" not in job_data:
+        if "start_date" not in job_data or not job_data["start_date"]:
             job_data["start_date"] = datetime.now(timezone.utc)
-        if "end_date" not in job_data:
+        if "end_date" not in job_data or not job_data["end_date"]:
             job_data["end_date"] = datetime.now(timezone.utc)
+        
+        # Clean and validate CSA ID
+        if "csa_id" in job_data:
+            job_data["csa_id"] = str(job_data["csa_id"]).strip()
         
         result = await db.recruitment_portal.jobs.insert_one(job_data)
         jobs_added += 1

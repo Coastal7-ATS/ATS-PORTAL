@@ -11,6 +11,7 @@ import {
   Plus
 } from 'lucide-react'
 import { toast } from 'react-toastify'
+import * as XLSX from 'xlsx'
 import api from '../../services/api'
 import {
   useFormValidation,
@@ -83,20 +84,31 @@ const AdminAddJob = () => {
     fetchData()
   }, [])
 
-  // CSV drop handler
+  // File drop handler - now supports both CSV and Excel
   const onDrop = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0]
-    if (file && file.type === 'text/csv') {
+    if (file) {
       setUploadedFile(file)
-      parseCSV(file)
-    } else {
-      toast.error('Please upload a valid CSV file')
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        parseCSV(file)
+      } else if (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+                 file.type === 'application/vnd.ms-excel' || 
+                 file.name.endsWith('.xlsx') || 
+                 file.name.endsWith('.xls')) {
+        parseExcel(file)
+      } else {
+        toast.error('Please upload a valid CSV or Excel file (.csv, .xlsx, .xls)')
+      }
     }
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'text/csv': ['.csv'] },
+    accept: { 
+      'text/csv': ['.csv'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
+    },
     multiple: false
   })
 
@@ -253,16 +265,20 @@ const AdminAddJob = () => {
     }))
   }
 
-  // CSV parsing
+  // Enhanced CSV parsing with proper handling of quoted fields and special characters
   const parseCSV = (file) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       const text = e.target.result
       const lines = text.split('\n').filter(line => line.trim())
       if (!lines.length) return setPreviewData(null)
-      const headers = lines[0].split(',').map(h => h.trim())
+      
+      // Parse headers
+      const headers = parseCSVLine(lines[0]).map(h => h.trim())
+      
+      // Parse data rows
       const parsedData = lines.slice(1).map((line, idx) => {
-        const values = line.split(',')
+        const values = parseCSVLine(line)
         const row = {}
         headers.forEach((header, colIdx) => {
           row[header] = values[colIdx]?.trim() || ''
@@ -274,6 +290,80 @@ const AdminAddJob = () => {
       setPreviewData({ headers, data: parsedData })
     }
     reader.readAsText(file)
+  }
+
+  // Helper function to parse CSV lines with proper handling of quoted fields
+  const parseCSVLine = (line) => {
+    const result = []
+    let current = ''
+    let inQuotes = false
+    let i = 0
+    
+    while (i < line.length) {
+      const char = line[i]
+      
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          // Escaped quote
+          current += '"'
+          i += 2
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes
+          i++
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current)
+        current = ''
+        i++
+      } else {
+        current += char
+        i++
+      }
+    }
+    
+    // Add the last field
+    result.push(current)
+    return result
+  }
+
+  // Excel file parsing
+  const parseExcel = (file) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        
+        // Convert to JSON with header row
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+        
+        if (jsonData.length < 2) {
+          toast.error('Excel file must have at least a header row and one data row')
+          return
+        }
+        
+        const headers = jsonData[0].map(h => h?.toString().trim() || '')
+        const parsedData = jsonData.slice(1).map((row, idx) => {
+          const rowObj = {}
+          headers.forEach((header, colIdx) => {
+            rowObj[header] = row[colIdx]?.toString().trim() || ''
+          })
+          rowObj.assigned_hr = ''
+          rowObj.id = idx
+          return rowObj
+        })
+        
+        setPreviewData({ headers, data: parsedData })
+      } catch (error) {
+        console.error('Error parsing Excel file:', error)
+        toast.error('Error parsing Excel file. Please ensure it\'s a valid Excel file.')
+      }
+    }
+    reader.readAsArrayBuffer(file)
   }
 
   // Manual form submit
@@ -306,24 +396,24 @@ const AdminAddJob = () => {
     }
   }
 
-  // CSV bulk upload
+  // Enhanced CSV bulk upload with proper field mapping
   const handleCSVUpload = async () => {
     if (!previewData || !previewData.data) return
     setUploading(true)
     try {
       const jobsData = previewData.data.map(row => ({
-        title: row.title,
-        description: row.description,
-        location: row.location,
-        actual_salary: row.actual_salary,
-        salary_band: row.salary_band,
-        salary_rate: row.salary_rate,
-        profit_percentage: row.profit_percentage,
-        expected_package: row.expected_package,
-        priority: row.priority,
-        csa_id: row.csa_id,
-        start_date: row.start_date,
-        end_date: row.end_date,
+        title: row.title || row['Job Title'] || '',
+        description: row.description || row['Job Description'] || '',
+        location: row.location || row['Location'] || '',
+        actual_salary: row.actual_salary || row['Actual Salary'] || row.ctc || row['CTC'] || row.package || row['Package'] || '',
+        salary_band: row.salary_band || row['Salary Band'] || '',
+        salary_rate: row.salary_rate || row['Salary Rate'] || '',
+        profit_percentage: row.profit_percentage || row['Profit Percentage'] || '',
+        expected_package: row.expected_package || row['Expected Package'] || '',
+        priority: row.priority || row['Priority'] || '',
+        csa_id: row.csa_id || row['CSA ID'] || '',
+        start_date: row.start_date || row['Start Date'] || '',
+        end_date: row.end_date || row['End Date'] || '',
         assigned_hr: row.assigned_hr || null
       }))
       const response = await api.post('/admin/add-jobs-bulk', jobsData)
@@ -336,13 +426,26 @@ const AdminAddJob = () => {
     }
   }
 
-  // CSV header validation
+  // Enhanced header validation for new format
   const validateHeaders = () => {
     if (!previewData) return false
-    const requiredHeaders = ['title', 'description', 'location']
-    const missing = requiredHeaders.filter(header =>
-      !previewData.headers.some(h => h.toLowerCase().includes(header.toLowerCase()))
-    )
+    const requiredHeaders = ['title', 'description', 'location', 'csa_id', 'start_date', 'end_date']
+    const headerMap = {
+      'title': ['title', 'job title'],
+      'description': ['description', 'job description'],
+      'location': ['location'],
+      'csa_id': ['csa_id', 'csa id'],
+      'start_date': ['start_date', 'start date'],
+      'end_date': ['end_date', 'end date']
+    }
+    
+    const missing = requiredHeaders.filter(requiredHeader => {
+      const possibleNames = headerMap[requiredHeader]
+      return !previewData.headers.some(header => 
+        possibleNames.some(name => header.toLowerCase().includes(name.toLowerCase()))
+      )
+    })
+    
     return missing.length === 0
   }
 
@@ -363,9 +466,24 @@ const AdminAddJob = () => {
     }))
   ]
 
-  // Download sample CSV function
+  // Updated download sample CSV function with new format
   const downloadSampleCSV = () => {
-        const csvContent = `Job Title,Job Description, Location, CSA ID, Start Date, End Date`
+    const csvContent = `title,description,location,csa_id,start_date,end_date
+Software Engineer,"Develop and maintain web applications using React and Node.js. Responsibilities include:
+• Building responsive user interfaces
+• Implementing RESTful APIs
+• Writing clean, maintainable code
+• Collaborating with cross-functional teams",Bangalore,ABC123,2024-01-15,2024-03-15
+Data Analyst,"Analyze data and create reports using Python and SQL. Key tasks:
+• Data cleaning and preprocessing
+• Statistical analysis and modeling
+• Creating visualizations and dashboards
+• Presenting findings to stakeholders",Mumbai,DEF456,2024-01-20,2024-02-20
+DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include:
+• AWS/Azure infrastructure management
+• Docker containerization
+• Jenkins pipeline configuration
+• Monitoring and logging setup",Hyderabad,GHI789,2024-01-25,2024-04-25`
     
     const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
@@ -407,7 +525,7 @@ const AdminAddJob = () => {
         </button>
         <div>
           <h1 className="gradient-text text-3xl font-bold">Add Job</h1>
-          <p className="text-slate-500 mt-1">Add new job openings manually or via CSV</p>
+          <p className="text-slate-500 mt-1">Add new job openings manually or via CSV/Excel</p>
         </div>
       </motion.div>
 
@@ -439,8 +557,8 @@ const AdminAddJob = () => {
             }`}
           >
             <UploadIcon className="h-8 w-8 mb-2" />
-            <span className="font-medium">CSV Upload</span>
-            <span className="text-sm text-slate-500 mt-1">Upload multiple jobs via CSV</span>
+            <span className="font-medium">File Upload</span>
+            <span className="text-sm text-slate-500 mt-1">Upload multiple jobs via CSV/Excel</span>
           </button>
         </div>
       </motion.div>
@@ -656,16 +774,16 @@ const AdminAddJob = () => {
         )}
       </AnimatePresence>
 
-      {/* CSV Section */}
+      {/* File Upload Section */}
       <AnimatePresence>
         {uploadMethod === 'csv' && (
           <>
-            {/* CSV Upload Card */}
+            {/* File Upload Card */}
             <motion.div
               variants={fadeIn}
               className={cardClass}
             >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload CSV File</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload File</h3>
               <div
                 {...getRootProps()}
                 className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all bg-gray-50 ${
@@ -678,11 +796,11 @@ const AdminAddJob = () => {
                 <UploadIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <p className="mt-2 text-sm text-gray-600">
                   {isDragActive
-                    ? 'Drop the CSV file here'
-                    : 'Drag and drop a CSV file here, or click to select'}
+                    ? 'Drop the file here'
+                    : 'Drag and drop a CSV or Excel file here, or click to select'}
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  Only CSV files are supported
+                  Supported formats: CSV (.csv), Excel (.xlsx, .xls)
                 </p>
               </div>
               {uploadedFile && (
@@ -716,7 +834,7 @@ const AdminAddJob = () => {
               )}
             </motion.div>
 
-            {/* CSV Preview Card - Moved to appear right after upload */}
+            {/* File Preview Card */}
             {uploadedFile && (
               <motion.div
                 variants={fadeIn}
@@ -726,7 +844,7 @@ const AdminAddJob = () => {
                   <svg className="h-5 w-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  CSV Preview
+                  File Preview
                 </h3>
                 {previewData ? (
                   <div className="space-y-4">
@@ -748,141 +866,148 @@ const AdminAddJob = () => {
                           : 'Missing required columns'}
                       </span>
                     </div>
-                    <div className="overflow-x-auto rounded-xl border border-gray-100 shadow-sm">
-                      <table className="min-w-full bg-white rounded-xl">
-                        <thead>
-                          <tr className="bg-gray-50">
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Job Title
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Description
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Location
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              CSA ID
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Salary Band
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Rate Type
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Actual Salary
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Profit Percentage
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Expected Package
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Priority
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
-                              Assign to HR
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {previewData.data.map(row => (
-                            <tr key={row.id} className="hover:bg-gray-50 transition border-b">
-                              <td className="px-4 py-3 text-sm text-gray-900 font-medium">{row.title}</td>
-                              <td
-                                className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate"
-                                title={row.description}
-                              >
-                                {row.description}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">{row.location}</td>
-                              <td className="px-4 py-3 text-sm text-gray-900 font-mono bg-blue-50 px-2 py-1 rounded">
-                                {row.csa_id}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <select
-                                  value={row.salary_band || ''}
-                                  onChange={e => handleCSVSalaryBandChange(row.id, e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                >
-                                  <option value="">Select Band</option>
-                                  {salaryBands.map(band => (
-                                    <option key={band.band} value={band.band}>
-                                      {band.band}{band.experience_range ? ` (${band.experience_range})` : ''}
-                                    </option>
-                                  ))}
-                                </select>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <select
-                                  value={row.salary_rate || ''}
-                                  onChange={e => handleCSVSalaryRateChange(row.id, e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                >
-                                  <option value="">Select Rate</option>
-                                  <option value="standard">Standard</option>
-                                  <option value="ra1">RA1</option>
-                                  <option value="ra2">RA2</option>
-                                </select>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <input
-                                  type="text"
-                                  value={row.actual_salary || ''}
-                                  readOnly
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md bg-gray-50"
-                                  placeholder="Calculated automatically"
-                                />
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <input
-                                  type="text"
-                                  value={row.profit_percentage || ''}
-                                  onChange={e => handleCSVProfitPercentageChange(row.id, e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                />
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <input
-                                  type="text"
-                                  value={row.expected_package || ''}
-                                  readOnly
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md bg-gray-50"
-                                  placeholder="Calculated automatically"
-                                />
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <select
-                                  value={row.priority || ''}
-                                  onChange={e => handleCSVPriorityChange(row.id, e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                >
-                                  <option value="">Select Priority</option>
-                                  <option value="low">Low</option>
-                                  <option value="medium">Medium</option>
-                                  <option value="high">High</option>
-                                </select>
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-900">
-                                <select
-                                  value={row.assigned_hr}
-                                  onChange={e => handleAssignHRChange(row.id, e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                >
-                                  <option value="">Select HR</option>
-                                  {hrUsers.map(hr => (
-                                    <option key={hr.id} value={hr.id}>
-                                      {hr.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              </td>
+                    
+                    <div className="overflow-x-auto">
+                                              <table className="min-w-full bg-white border border-gray-200 rounded-xl overflow-hidden">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] w-[200px]">CSA ID</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary Band</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate Type</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Salary</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit Percentage</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Package</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned HR</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {previewData.data.slice(0, 5).map((row) => (
+                              <tr key={row.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
+                                  {row.title || row['Job Title'] || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
+                                  <div className="max-h-20 overflow-y-auto">
+                                    {row.description || row['Job Description'] || ''}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {row.location || row['Location'] || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 min-w-[200px] w-[200px]">
+                                  <input
+                                    type="text"
+                                    value={row.csa_id || row['CSA ID'] || ''}
+                                    onChange={e => {
+                                      const updatedData = previewData.data.map(r => 
+                                        r.id === row.id ? { ...r, csa_id: e.target.value } : r
+                                      )
+                                      setPreviewData({ ...previewData, data: updatedData })
+                                    }}
+                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                    placeholder="Enter CSA ID"
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  <select
+                                    value={row.salary_band || ''}
+                                    onChange={e => handleCSVSalaryBandChange(row.id, e.target.value)}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                  >
+                                    <option value="">Select Band</option>
+                                    {salaryBands.map(band => (
+                                      <option key={band.band} value={band.band}>
+                                        {band.band}{band.experience_range ? ` (${band.experience_range})` : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  <select
+                                    value={row.salary_rate || ''}
+                                    onChange={e => handleCSVSalaryRateChange(row.id, e.target.value)}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                  >
+                                    <option value="">Select Rate</option>
+                                    <option value="standard">Standard</option>
+                                    <option value="ra1">RA1</option>
+                                    <option value="ra2">RA2</option>
+                                  </select>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  <input
+                                    type="text"
+                                    value={row.actual_salary || ''}
+                                    readOnly
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md bg-gray-50"
+                                    placeholder="Calculated automatically"
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  <input
+                                    type="text"
+                                    value={row.profit_percentage || ''}
+                                    onChange={e => handleCSVProfitPercentageChange(row.id, e.target.value)}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                    placeholder="Enter %"
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  <input
+                                    type="text"
+                                    value={row.expected_package || ''}
+                                    readOnly
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md bg-gray-50"
+                                    placeholder="Calculated automatically"
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  <select
+                                    value={row.priority || ''}
+                                    onChange={e => handleCSVPriorityChange(row.id, e.target.value)}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                  >
+                                    <option value="">Select Priority</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                  </select>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {row.start_date || row['Start Date'] || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {row.end_date || row['End Date'] || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  <select
+                                    value={row.assigned_hr}
+                                    onChange={e => handleAssignHRChange(row.id, e.target.value)}
+                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                                  >
+                                    <option value="">Select HR</option>
+                                    {hrUsers.map(hr => (
+                                      <option key={hr.id} value={hr.id}>
+                                        {hr.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      {previewData.data.length > 5 && (
+                        <div className="text-center text-sm text-gray-500 mt-2">
+                          Showing first 5 rows of {previewData.data.length} total rows
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={handleCSVUpload}
@@ -903,13 +1028,13 @@ const AdminAddJob = () => {
                   <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                     <FileText className="mx-auto h-12 w-12 mb-2" />
                     <p className="text-sm">No file selected</p>
-                    <p className="text-xs text-gray-400">Upload a CSV file to see parsed data</p>
+                    <p className="text-xs text-gray-400">Upload a CSV or Excel file to see parsed data</p>
                   </div>
                 )}
               </motion.div>
             )}
 
-            {/* CSV Requirements Card - Always Visible */}
+            {/* File Requirements Card */}
             <motion.div
               variants={fadeIn}
               className={cardClass}
@@ -918,136 +1043,76 @@ const AdminAddJob = () => {
                 <svg className="h-5 w-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-                CSV Format Requirements
+                File Format Requirements
               </h3>
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-4">
                   <div>
-                    <h5 className="font-semibold text-blue-900 mb-3 flex items-center">
-                      <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                      Required Columns
-                    </h5>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                          <span className="font-mono font-semibold text-blue-700">title</span>
-                        </div>
-                        <span className="text-sm text-gray-600">Job title</span>
+                    <h4 className="font-semibold text-blue-900 mb-2">Required Columns:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span className="font-medium">title</span>
+                        <span className="text-blue-600">(Job Title)</span>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                          <span className="font-mono font-semibold text-blue-700">description</span>
-                        </div>
-                        <span className="text-sm text-gray-600">Job description</span>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span className="font-medium">description</span>
+                        <span className="text-blue-600">(Job Description)</span>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                          <span className="font-mono font-semibold text-blue-700">location</span>
-                        </div>
-                        <span className="text-sm text-gray-600">Job location</span>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span className="font-medium">location</span>
+                        <span className="text-blue-600">(Job Location)</span>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
-                          <span className="font-mono font-semibold text-yellow-700">csa_id</span>
-                        </div>
-                        <span className="text-sm text-gray-600">Primary Key (6 alphanumeric)</span>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span className="font-medium">csa_id</span>
+                        <span className="text-blue-600">(CSA ID - Primary Key)</span>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                          <span className="font-mono font-semibold text-blue-700">start_date</span>
-                        </div>
-                        <span className="text-sm text-gray-600">Start Date (YYYY-MM-DD)</span>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span className="font-medium">start_date</span>
+                        <span className="text-blue-600">(Start Date)</span>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                          <span className="font-mono font-semibold text-blue-700">end_date</span>
-                        </div>
-                        <span className="text-sm text-gray-600">End Date (YYYY-MM-DD)</span>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span className="font-medium">end_date</span>
+                        <span className="text-blue-600">(End Date)</span>
                       </div>
                     </div>
                   </div>
+                  
                   <div>
-                    <h5 className="font-semibold text-blue-900 mb-3 flex items-center">
-                      <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    <h4 className="font-semibold text-blue-900 mb-2">Special Handling:</h4>
+                    <ul className="space-y-1 text-sm text-blue-800">
+                      <li>• <strong>Job Description:</strong> Supports long text with paragraphs, bullet points, commas, and special characters</li>
+                      <li>• <strong>CSA ID:</strong> Must be unique and can be edited after upload</li>
+                      <li>• <strong>File Formats:</strong> CSV (.csv) and Excel (.xlsx, .xls) are supported</li>
+                      <li>• <strong>CSV Format:</strong> Use quotes around text fields to handle commas and special characters</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-blue-700 bg-blue-100 p-3 rounded-lg">
+                    <div className="font-semibold mb-1">💡 Tips:</div>
+                    <ul className="space-y-1">
+                      <li>• Use quotes around text values to handle commas and special characters</li>
+                      <li>• Ensure all required columns are present</li>
+                      <li>• Don't include empty rows at the end</li>
+                      <li>• CSA ID must be unique (alphanumeric characters)</li>
+                      <li>• Job descriptions can include paragraphs, bullet points, and formatting</li>
+                    </ul>
+                  </div>
+                  <div className="mt-4 flex justify-center">
+                    <button
+                      onClick={downloadSampleCSV}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Example Format
-                    </h5>
-                    <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                      <div className="mb-2">
-                        <span className="text-gray-400"># Header row</span>
-                      </div>
-                      <div className="mb-1">
-                        <span className="text-yellow-400">title</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-yellow-400">description</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-yellow-400">location</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-yellow-400">csa_id</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-yellow-400">start_date</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-yellow-400">end_date</span>
-                      </div>
-                      <div className="mt-4 mb-2">
-                        <span className="text-gray-400"># Data rows</span>
-                      </div>
-                      <div className="mb-1">
-                        <span className="text-green-400">"Software Engineer"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"Develop web applications using React"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"Bangalore"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"U2XKD2"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"2025-01-15"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"2025-02-15"</span>
-                      </div>
-                      <div>
-                        <span className="text-green-400">"Data Analyst"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"Analyze data and create reports"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"Mumbai"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"A1B2C3"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"2025-01-20"</span>
-                        <span className="text-gray-400">,</span>
-                        <span className="text-green-400">"2025-02-20"</span>
-                      </div>
-                    </div>
-                    <div className="mt-3 text-xs text-blue-700 bg-blue-100 p-3 rounded-lg">
-                      <div className="font-semibold mb-1">💡 Tips:</div>
-                      <ul className="space-y-1">
-                        <li>• Use quotes around text values to handle commas</li>
-                        <li>• Ensure all required columns are present</li>
-                        <li>• Don't include empty rows at the end</li>
-                        <li>• CSA ID must be unique (6 alphanumeric characters)</li>
-                      </ul>
-                    </div>
-                    <div className="mt-4 flex justify-center">
-                      <button
-                        onClick={downloadSampleCSV}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download Sample CSV
-                      </button>
-                    </div>
+                      Download Sample CSV
+                    </button>
                   </div>
                 </div>
               </div>
