@@ -452,7 +452,8 @@ const AdminJobs = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: 0.02 * index }}
-                    className="hover:bg-blue-50/50 transition-colors duration-200"
+                    className="hover:bg-blue-50/50 transition-colors duration-200 cursor-pointer"
+                    onClick={() => handleViewJob(job)}
                   >
                     <td className="px-6 py-4">
                       <div>
@@ -529,7 +530,7 @@ const AdminJobs = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => handleViewJob(job)}
                           className="p-1 hover:bg-blue-50 rounded transition-colors duration-200"

@@ -6,7 +6,7 @@ import api from '../../services/api'
 import { toast } from 'react-toastify'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import CandidateViewModal from '../../components/CandidateViewModal'
+
 import Pagination from '../../components/Pagination'
 
 // Animation variants for consistent animations
@@ -51,12 +51,10 @@ const HRJobs = () => {
   const [appliedFilters, setAppliedFilters] = useState({ status: '' })
   const [appliedSearch, setAppliedSearch] = useState('')
   const [selectedJob, setSelectedJob] = useState(null)
-  const [showViewModal, setShowViewModal] = useState(false)
   const [showAddCandidateModal, setShowAddCandidateModal] = useState(false)
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false)
+  const [showJobViewModal, setShowJobViewModal] = useState(false)
   const [newStatus, setNewStatus] = useState('')
-  const [selectedCandidate, setSelectedCandidate] = useState(null)
-  const [showCandidateViewModal, setShowCandidateViewModal] = useState(false)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -171,34 +169,24 @@ const HRJobs = () => {
     }
   }
 
-  const handleViewCandidates = (job) => { 
-    setSelectedJob(job)
-    setShowViewModal(true) 
-  }
-  
   const handleAddCandidate = (job) => { 
     setSelectedJob(job)
     setShowAddCandidateModal(true) 
   }
   
-    const handleUpdateStatus = (job) => { 
+  const handleUpdateStatus = (job) => { 
     setSelectedJob(job)
     setNewStatus(job.status)
     setShowUpdateStatusModal(true)
   }
 
-  const handleViewCandidate = async (candidateId) => {
-    try {
-      setLoading(true)
-      const response = await api.get(`/candidates/${candidateId}`)
-      setSelectedCandidate(response.data)
-      setShowCandidateViewModal(true)
-    } catch (error) {
-      console.error('Error fetching candidate details:', error)
-      toast.error('Failed to fetch candidate details')
-    } finally {
-      setLoading(false)
-    }
+  const handleViewJob = (job) => {
+    setSelectedJob(job)
+    setShowJobViewModal(true)
+  }
+
+  const handleRowClick = (job) => {
+    handleViewJob(job)
   }
 
   const handlePageChange = (page) => {
@@ -456,7 +444,8 @@ const HRJobs = () => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.2, delay: 0.02 * index }}
-                      className="hover:bg-gray-50 transition-colors duration-200"
+                      className="hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                      onClick={() => handleRowClick(job)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
@@ -513,7 +502,7 @@ const HRJobs = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleAddCandidate(job)}
                             className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded transition-colors duration-200"
@@ -522,12 +511,12 @@ const HRJobs = () => {
                             <Plus className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleViewCandidates(job)}
+                            onClick={() => handleViewJob(job)}
                             className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
-                            title="View Candidates"
+                            title="View Job Details & Candidates"
                           >
                             <Eye className="h-4 w-4" />
-                          </button>  
+                          </button>
                           <button
                             onClick={() => handleUpdateStatus(job)}
                             className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 rounded transition-colors duration-200"
@@ -559,47 +548,7 @@ const HRJobs = () => {
         )}
       </motion.div>
 
-      {/* View Candidates Modal */}
-      <AnimatePresence>
-        {showViewModal && selectedJob && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
-          >
-            <motion.div
-              variants={modalVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200"
-            >
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl z-10">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      Candidates for {selectedJob.title}
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Job ID: {selectedJob.job_id} • Location: {selectedJob.location}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowViewModal(false)}
-                    className="inline-flex items-center justify-center p-2 border border-gray-300 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-              <div className="p-6">
-                <CandidatesList jobId={selectedJob.job_id} />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* Add Candidate Modal */}
       <AnimatePresence>
@@ -719,16 +668,180 @@ const HRJobs = () => {
         )}
       </AnimatePresence>
 
-      {/* Candidate View Modal */}
-      <CandidateViewModal
-        candidate={selectedCandidate}
-        open={showCandidateViewModal}
-        onClose={() => {
-          setShowCandidateViewModal(false);
-          setSelectedCandidate(null);
-        }}
-        onUpdate={fetchJobs}
-      />
+      {/* Job View Modal */}
+      <AnimatePresence>
+        {showJobViewModal && selectedJob && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          >
+            <motion.div
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200"
+            >
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl z-10">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      Job Details & Candidates
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Job ID: {selectedJob.job_id} • Location: {selectedJob.location}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowJobViewModal(false)}
+                    className="inline-flex items-center justify-center p-2 border border-gray-300 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="space-y-6">
+                  {/* Job Header */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                          {selectedJob.title}
+                        </h2>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            {selectedJob.location}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {selectedJob.start_date ? new Date(selectedJob.start_date).toLocaleDateString() : 'N/A'} - {selectedJob.end_date ? new Date(selectedJob.end_date).toLocaleDateString() : 'N/A'}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {selectedJob.csa_id || 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        className={`inline-flex px-4 py-2 text-sm font-semibold ${getJobStatusColor(
+                          selectedJob.status
+                        )}`}
+                      >
+                        {selectedJob.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Job Description */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      Job Description
+                    </h3>
+                    <div className="prose max-w-none">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {selectedJob.description || 'No description available for this job.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Job Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Package & Priority */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Briefcase className="h-5 w-5 text-green-600" />
+                        Package & Priority
+                      </h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600">Expected Package</label>
+                          <p className="text-lg font-semibold text-gray-900">
+                            ₹{selectedJob.expected_package || selectedJob.salary_package || 'Not specified'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600">Priority Level</label>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {selectedJob.priority ? selectedJob.priority.charAt(0).toUpperCase() + selectedJob.priority.slice(1) : 'Not specified'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Timeline */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-purple-600" />
+                        Timeline
+                      </h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600">Start Date</label>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {selectedJob.start_date ? new Date(selectedJob.start_date).toLocaleDateString() : 'Not specified'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600">End Date</label>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {selectedJob.end_date ? new Date(selectedJob.end_date).toLocaleDateString() : 'Not specified'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Information */}
+                  {selectedJob.requirements || selectedJob.skills || selectedJob.benefits ? (
+                    <div className="bg-white border border-gray-200 rounded-xl p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-indigo-600" />
+                        Additional Information
+                      </h3>
+                      <div className="space-y-4">
+                        {selectedJob.requirements && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">Requirements</label>
+                            <p className="text-gray-700">{selectedJob.requirements}</p>
+                          </div>
+                        )}
+                        {selectedJob.skills && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">Skills</label>
+                            <p className="text-gray-700">{selectedJob.skills}</p>
+                          </div>
+                        )}
+                        {selectedJob.benefits && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-2">Benefits</label>
+                            <p className="text-gray-700">{selectedJob.benefits}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Candidates Section */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-green-600" />
+                      Candidates for this Job
+                    </h3>
+                    <CandidatesList jobId={selectedJob.job_id} />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+
     </motion.div>
   )
 }
@@ -739,7 +852,6 @@ const CandidatesList = ({ jobId }) => {
   const [loading, setLoading] = useState(true)
   const [selectedCandidate, setSelectedCandidate] = useState(null)
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false)
-  const [showCandidateViewModal, setShowCandidateViewModal] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [notes, setNotes] = useState('')
 
@@ -782,19 +894,7 @@ const CandidatesList = ({ jobId }) => {
     setShowUpdateStatusModal(true)
   }
 
-  const handleViewCandidate = async (candidateId) => {
-    try {
-      setLoading(true)
-      const response = await api.get(`/candidates/${candidateId}`)
-      setSelectedCandidate(response.data)
-      setShowCandidateViewModal(true)
-    } catch (error) {
-      console.error('Error fetching candidate details:', error)
-      toast.error('Failed to fetch candidate details')
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
 
 
@@ -894,17 +994,11 @@ const CandidatesList = ({ jobId }) => {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleViewCandidate(candidate.id)}
-                      className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
-                    >
-                      <Eye className="h-4 w-4" /> 
-                    </button>
-                    <button
                       onClick={() => handleUpdateStatus(candidate)}
                       className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                      title="Update Status"
                     >
-                      <Edit className="h-4 w-4 mr-1" />
-                      
+                      <Edit className="h-4 w-4" />
                     </button>
                   </div>
                 </td>
@@ -997,16 +1091,7 @@ const CandidatesList = ({ jobId }) => {
         )}
       </AnimatePresence>
 
-      {/* Candidate View Modal */}
-      <CandidateViewModal
-        candidate={selectedCandidate}
-        open={showCandidateViewModal}
-        onClose={() => {
-          setShowCandidateViewModal(false);
-          setSelectedCandidate(null);
-        }}
-        onUpdate={fetchCandidates}
-      />
+
     </>
   )
 }
