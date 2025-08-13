@@ -13,7 +13,8 @@ async def update_expired_job_statuses():
     """
     Shared function to update job statuses for expired jobs.
     Checks all open jobs that have passed their end date and updates them to 'demand closed'
-    if they don't have any selected candidates.
+    if they don't have any selected candidates. Moves these jobs to job_history collection
+    and deletes them from the original collection.
     """
     try:
         db = await get_database()
@@ -40,19 +41,34 @@ async def update_expired_job_statuses():
                 })
                 
                 if not selected:
-                    # No selected candidates found, update to demand closed
-                    result = await db.recruitment_portal.jobs.update_one(
-                        {"_id": job["_id"]}, 
-                        {"$set": {"status": "demand closed"}}
-                    )
-                    if result.modified_count > 0:
+                    # No selected candidates found, move to job_history and delete from original
+                    # Add additional fields for history tracking
+                    job_history_doc = {
+                        **job,
+                        "moved_to_history_date": now,
+                        "moved_to_history_reason": "end_date_passed_no_candidates",
+                        "original_job_id": job["_id"]
+                    }
+                    
+                    # Remove the _id field from the history document to avoid ObjectId serialization issues
+                    # MongoDB will generate a new _id for the history document
+                    if "_id" in job_history_doc:
+                        del job_history_doc["_id"]
+                    
+                    # Insert into job_history collection
+                    await db.recruitment_portal.job_history.insert_one(job_history_doc)
+                    
+                    # Delete from original collection
+                    result = await db.recruitment_portal.jobs.delete_one({"_id": job["_id"]})
+                    
+                    if result.deleted_count > 0:
                         updated_count += 1
-                        print(f"Updated job {job.get('job_id', 'unknown')} to demand closed")
+                        print(f"Moved job {job.get('job_id', 'unknown')} to job_history and deleted from original")
             except Exception as e:
                 print(f"Error processing job {job.get('job_id', 'unknown')}: {e}")
                 continue
         
-        print(f"Total jobs updated to demand closed: {updated_count}")
+        print(f"Total jobs moved to history and deleted: {updated_count}")
         return updated_count
     except Exception as e:
         print(f"Error in update_expired_job_statuses: {e}")

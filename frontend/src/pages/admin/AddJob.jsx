@@ -209,33 +209,6 @@ const AdminAddJob = () => {
     }))
   }
 
-  // CSV salary rate change handler
-  const handleCSVSalaryRateChange = (rowId, rate) => {
-    setPreviewData(prev => ({
-      ...prev,
-      data: prev.data.map(row => {
-        if (row.id === rowId) {
-          const newRow = { ...row, salary_rate: rate }
-          // Recalculate salary if band is also selected
-          if (row.salary_band) {
-            const newSalary = calculateActualSalary(row.salary_band, rate)
-            newRow.actual_salary = newSalary
-            
-            // Recalculate expected package if profit percentage is also selected
-            if (row.profit_percentage) {
-              const newExpected = calculateExpectedPackage(newSalary, row.profit_percentage)
-              newRow.expected_package = newExpected
-            }
-          }
-          return newRow
-        }
-        return row
-      })
-    }))
-  }
-
-
-
   // Enhanced CSV parsing with proper handling of quoted fields and special characters
   const parseCSV = (file) => {
     const reader = new FileReader()

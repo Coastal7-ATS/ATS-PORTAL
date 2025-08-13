@@ -1010,3 +1010,88 @@ async def get_hr_revenue(current_user: dict = Depends(get_current_admin_user)):
     revenue_data.sort(key=lambda x: x["revenue"], reverse=True)
     
     return revenue_data 
+
+@router.get("/job-history")
+async def get_job_history(
+    page: Optional[int] = 1,
+    limit: Optional[int] = 25,
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """
+    Get job history from the job_history collection.
+    This contains jobs that were moved to history due to expiration.
+    """
+    # Validate pagination parameters
+    if page < 1:
+        page = 1
+    if limit < 1 or limit > 100:
+        limit = 25
+    
+    db = await get_database()
+    
+    # Build filter
+    filter_query = {}
+    
+    # Handle search functionality
+    if search:
+        # Create a regex pattern for case-insensitive search
+        import re
+        search_pattern = re.compile(search, re.IGNORECASE)
+        filter_query["$or"] = [
+            {"title": search_pattern},
+            {"description": search_pattern},
+            {"job_id": search_pattern},
+            {"csa_id": search_pattern},
+            {"location": search_pattern},
+            {"salary_package": search_pattern}
+        ]
+    
+    # Get total count for pagination
+    total_jobs = await db.recruitment_portal.job_history.count_documents(filter_query)
+    
+    # Calculate pagination
+    total_pages = (total_jobs + limit - 1) // limit
+    skip = (page - 1) * limit
+    
+    # Get all HR users for name mapping
+    hr_users = await db.recruitment_portal.users.find({"role": "hr"}).to_list(length=100)
+    hr_user_map = {str(user["_id"]): user["name"] for user in hr_users}
+    
+    # Get paginated job history
+    jobs = await db.recruitment_portal.job_history.find(filter_query).sort("moved_to_history_date", -1).skip(skip).limit(limit).to_list(length=limit)
+    
+    for job in jobs:
+        # Convert ObjectId to string for JSON serialization
+        job["id"] = str(job["_id"])
+        del job["_id"]
+        
+        # Handle original_job_id if it exists (it's also an ObjectId)
+        if "original_job_id" in job and job["original_job_id"]:
+            job["original_job_id"] = str(job["original_job_id"])
+        
+        # Convert datetime fields to ISO format for JSON serialization
+        if "created_at" in job and isinstance(job["created_at"], datetime):
+            job["created_at"] = job["created_at"].isoformat()
+        if "start_date" in job and isinstance(job["start_date"], datetime):
+            job["start_date"] = job["start_date"].isoformat()
+        if "end_date" in job and isinstance(job["end_date"], datetime):
+            job["end_date"] = job["end_date"].isoformat()
+        if "moved_to_history_date" in job and isinstance(job["moved_to_history_date"], datetime):
+            job["moved_to_history_date"] = job["moved_to_history_date"].isoformat()
+        
+        # Add HR user name if assigned
+        if job.get("assigned_hr"):
+            job["assigned_hr_name"] = hr_user_map.get(job["assigned_hr"], "Unknown")
+    
+    return {
+        "jobs": jobs,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total_jobs": total_jobs,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    } 

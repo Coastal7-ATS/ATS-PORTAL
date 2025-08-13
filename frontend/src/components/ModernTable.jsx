@@ -54,7 +54,7 @@ const ModernTable = ({
             >
               {headers.map((header, colIndex) => (
                 <td key={colIndex} className={header.cellClassName || ""}>
-                  {header.render ? header.render(row[header.key], row) : row[header.key]}
+                  {header.render ? header.render(row, row[header.key]) : row[header.key]}
                 </td>
               ))}
             </motion.tr>

@@ -87,6 +87,7 @@ const Layout = () => {
   const adminNavItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: Home },
     { name: 'Jobs', path: '/admin/jobs', icon: Briefcase },
+    { name: 'History', path: '/admin/history', icon: Upload },
     { name: 'HR Users', path: '/admin/users', icon: Users },
     { name: 'Candidates', path: '/admin/candidates', icon: UserCheck },
   ]

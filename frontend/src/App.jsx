@@ -8,6 +8,7 @@ import AdminJobs from './pages/admin/Jobs'
 import AdminAddJob from './pages/admin/AddJob'
 import AdminUsers from './pages/admin/Users'
 import AdminCandidates from './pages/admin/Candidates'
+import AdminHistory from './pages/admin/History'
 import HRDashboard from './pages/hr/Dashboard'
 import HRJobs from './pages/hr/Jobs'
 import HRCandidates from './pages/hr/Candidates'
@@ -35,6 +36,7 @@ function App() {
               <Route path="add-job" element={<AdminAddJob />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="candidates" element={<AdminCandidates />} />
+              <Route path="history" element={<AdminHistory />} />
             </Route>
             
             {/* HR Routes */}
