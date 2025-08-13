@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Briefcase, Filter, Eye, Edit, Plus, Search, MapPin, Calendar, Users, FileText, X } from 'lucide-react'
+import { Briefcase, Filter, Eye, Edit, Plus, Search, MapPin, Calendar, Users, FileText, X, Download, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { toast } from 'react-toastify'
@@ -852,6 +852,7 @@ const CandidatesList = ({ jobId }) => {
   const [loading, setLoading] = useState(true)
   const [selectedCandidate, setSelectedCandidate] = useState(null)
   const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [notes, setNotes] = useState('')
 
@@ -892,6 +893,47 @@ const CandidatesList = ({ jobId }) => {
     setNewStatus(candidate.status)
     setNotes('')
     setShowUpdateStatusModal(true)
+  }
+
+  const handleViewCandidate = (candidate) => {
+    setSelectedCandidate(candidate)
+    setShowViewModal(true)
+  }
+
+  const handleDeleteCandidate = async (candidateId) => {
+    if (window.confirm('Are you sure you want to delete this candidate? This action cannot be undone.')) {
+      try {
+        await api.delete(`/candidates/${candidateId}`)
+        toast.success('Candidate deleted successfully')
+        setShowViewModal(false)
+        setSelectedCandidate(null)
+        fetchCandidates()
+      } catch (error) {
+        toast.error(error.response?.data?.detail || 'Failed to delete candidate')
+      }
+    }
+  }
+
+  const exportCandidateToDoc = async (candidate) => {
+    try {
+      const response = await api.get(`/candidates/${candidate.id}/export`, {
+        responseType: 'blob'
+      })
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${candidate.name}_profile.docx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      
+      toast.success('Candidate profile exported successfully!')
+    } catch (error) {
+      console.error('Export error:', error)
+      toast.error('Failed to export candidate profile')
+    }
   }
 
 
@@ -994,11 +1036,32 @@ const CandidatesList = ({ jobId }) => {
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => handleViewCandidate(candidate)}
+                      className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
+                      title="View Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
                       onClick={() => handleUpdateStatus(candidate)}
-                      className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
-                      title="Update Status"
+                      className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded transition-colors duration-200"
+                      title="Edit Status"
                     >
                       <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => exportCandidateToDoc(candidate)}
+                      className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 rounded transition-colors duration-200"
+                      title="Export Details"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCandidate(candidate.id)}
+                      className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors duration-200"
+                      title="Delete Candidate"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </td>
@@ -1091,6 +1154,128 @@ const CandidatesList = ({ jobId }) => {
         )}
       </AnimatePresence>
 
+      {/* View Candidate Modal */}
+      <AnimatePresence>
+        {showViewModal && selectedCandidate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          >
+            <motion.div
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Candidate Details - {selectedCandidate.name}
+                </h3>
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="inline-flex items-center justify-center p-2 border border-gray-300 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.email}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.phone || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">PAN Number</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.pan_number || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Location</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.current_location || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Hometown</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.hometown || 'N/A'}</p>
+                  </div>
+                </div>
+
+                {/* Experience Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Total Experience</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.total_experience || selectedCandidate.experience || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Relevant Experience</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.relevant_experience || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current CTC</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.current_ctc || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Expected CTC</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.expected_ctc || 'N/A'}</p>
+                  </div>
+                </div>
+
+                {/* Education Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Education</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.education || selectedCandidate.education_degree_name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Skills</label>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedCandidate.skills || 'N/A'}</p>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
+                  <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(selectedCandidate.status)}`}>
+                    {selectedCandidate.status}
+                  </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => exportCandidateToDoc(selectedCandidate)}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-all duration-200"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowViewModal(false)
+                      handleUpdateStatus(selectedCandidate)
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-all duration-200"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Update Status
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </>
   )
