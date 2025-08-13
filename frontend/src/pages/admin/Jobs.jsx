@@ -4,6 +4,7 @@ import { Briefcase, Plus, Eye, Pencil, Calendar, MapPin, User, Search, Filter, X
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../../services/api'
+import Pagination from '../../components/Pagination'
 
 const ALLOWED_STATUSES = ["open", "closed", "submitted", "allocated", "demand closed"]
 
@@ -33,6 +34,13 @@ const AdminJobs = () => {
     end_date: ''
   })
   const [showFilters, setShowFilters] = useState(false)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalJobs, setTotalJobs] = useState(0)
+  const [itemsPerPage] = useState(25)
+  
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -94,7 +102,7 @@ const AdminJobs = () => {
     }
   }
 
-  const fetchJobs = async (searchParams = {}) => {
+  const fetchJobs = async (searchParams = {}, page = 1) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -118,13 +126,31 @@ const AdminJobs = () => {
         params.append('end_date', searchParams.end_date)
       }
       
-
+      // Add pagination parameters
+      params.append('page', page.toString())
+      params.append('limit', itemsPerPage.toString())
       
       const response = await api.get(`/admin/jobs?${params.toString()}`)
-      setJobs(response.data)
+      
+      // Handle paginated response
+      if (response.data.jobs && response.data.pagination) {
+        setJobs(response.data.jobs)
+        setTotalPages(response.data.pagination.total_pages)
+        setTotalJobs(response.data.pagination.total_jobs)
+        setCurrentPage(response.data.pagination.page)
+      } else {
+        // Fallback for non-paginated response
+        setJobs(response.data)
+        setTotalPages(1)
+        setTotalJobs(response.data.length)
+        setCurrentPage(1)
+      }
     } catch (error) {
       console.error('Error fetching jobs:', error)
       setJobs([])
+      setTotalPages(1)
+      setTotalJobs(0)
+      setCurrentPage(1)
     } finally {
       setLoading(false)
     }
@@ -152,7 +178,8 @@ const AdminJobs = () => {
       search: searchTerm,
       ...filters
     }
-    fetchJobs(searchParams)
+    setCurrentPage(1) // Reset to first page
+    fetchJobs(searchParams, 1)
   }
 
   const handleApplyFilters = () => {
@@ -160,7 +187,8 @@ const AdminJobs = () => {
       search: searchTerm,
       ...filters
     }
-    fetchJobs(searchParams)
+    setCurrentPage(1) // Reset to first page
+    fetchJobs(searchParams, 1)
   }
 
   const handleResetFilters = () => {
@@ -171,7 +199,8 @@ const AdminJobs = () => {
       start_date: '',
       end_date: ''
     })
-    fetchJobs({})
+    setCurrentPage(1) // Reset to first page
+    fetchJobs({}, 1)
   }
 
   const handleFilterChange = (key, value) => {
@@ -179,6 +208,15 @@ const AdminJobs = () => {
       ...prev,
       [key]: value
     }))
+  }
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+    const searchParams = {
+      search: searchTerm,
+      ...filters
+    }
+    fetchJobs(searchParams, page)
   }
 
 
@@ -360,7 +398,7 @@ const AdminJobs = () => {
       {/* Results Count */}
       <div className="flex items-center justify-end mb-4">
         <span className="text-sm text-gray-600">
-          {jobs.length} jobs found
+          {totalJobs} jobs found
         </span>
       </div>
 
@@ -381,7 +419,7 @@ const AdminJobs = () => {
             </div>
             <div className="flex items-center gap-2 text-sm text-blue-600">
               <Briefcase className="h-4 w-4" />
-              <span>{jobs.length} Total Positions</span>
+              <span>{totalJobs} Total Positions</span>
             </div>
           </div>
         </div>
@@ -519,6 +557,19 @@ const AdminJobs = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalJobs}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+            />
           </div>
         )}
       </motion.div>

@@ -14,8 +14,16 @@ MANUAL_JOB_STATUSES = ["open", "closed", "submitted"]
 @router.get("/jobs")
 async def get_hr_jobs(
     status: Optional[str] = None,
+    page: Optional[int] = 1,
+    limit: Optional[int] = 25,
     current_user: dict = Depends(get_current_hr_user)
 ):
+    # Validate pagination parameters
+    if page < 1:
+        page = 1
+    if limit < 1 or limit > 100:
+        limit = 25
+    
     db = await get_database()
     
     # Update expired job statuses first
@@ -26,7 +34,15 @@ async def get_hr_jobs(
     if status:
         filter_query["status"] = status
 
-    jobs = await db.recruitment_portal.jobs.find(filter_query).sort("created_at", -1).to_list(length=100)
+    # Get total count for pagination
+    total_jobs = await db.recruitment_portal.jobs.count_documents(filter_query)
+    
+    # Calculate pagination
+    total_pages = (total_jobs + limit - 1) // limit
+    skip = (page - 1) * limit
+    
+    # Get paginated jobs
+    jobs = await db.recruitment_portal.jobs.find(filter_query).sort("created_at", -1).skip(skip).limit(limit).to_list(length=limit)
     
     for job in jobs:
         job["id"] = str(job["_id"])
@@ -39,7 +55,17 @@ async def get_hr_jobs(
         if "end_date" in job and isinstance(job["end_date"], datetime):
             job["end_date"] = job["end_date"].isoformat()
     
-    return jobs
+    return {
+        "jobs": jobs,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total_jobs": total_jobs,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    }
 
 @router.put("/jobs/{job_id}/status")
 async def update_job_status(

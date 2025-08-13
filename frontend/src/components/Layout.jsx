@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import LoadingSpinner from './LoadingSpinner'
+import logoImage from '../assets/Coastal_Seven_Consulting_color.png'
 import { 
   Home, 
   Upload, 
@@ -196,7 +197,7 @@ const Layout = () => {
           {/* Mobile Header */}
           <div className="flex h-20 items-center justify-between px-6 border-b border-gray-200">
             <img
-              src="./Coastal_Seven_Consulting_color.png"
+              src={logoImage}
               alt="Coastal Seven Consulting Logo"
               className="h-12 w-auto object-contain transition-transform duration-200 hover:scale-105"
               style={{ maxWidth: '180px' }}
@@ -256,7 +257,7 @@ const Layout = () => {
               title="Go to Dashboard"
             >
               <img
-                src="./Coastal_Seven_Consulting_color.png"
+                src={logoImage}
                 alt="Coastal Seven Consulting Logo"
                 className="h-12 w-auto object-contain transition-transform duration-200 hover:scale-105"
                 style={{ maxWidth: '220px' }}

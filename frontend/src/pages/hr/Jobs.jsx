@@ -7,6 +7,7 @@ import { toast } from 'react-toastify'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import CandidateViewModal from '../../components/CandidateViewModal'
+import Pagination from '../../components/Pagination'
 
 // Animation variants for consistent animations
 const pageVariants = {
@@ -56,6 +57,13 @@ const HRJobs = () => {
   const [newStatus, setNewStatus] = useState('')
   const [selectedCandidate, setSelectedCandidate] = useState(null)
   const [showCandidateViewModal, setShowCandidateViewModal] = useState(false)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalJobs, setTotalJobs] = useState(0)
+  const [itemsPerPage] = useState(25)
+  
   const [candidateForm, setCandidateForm] = useState({
     name: '', email: '', phone: '', pan_number: '', current_location: '', hometown: '',
     total_experience: '', relevant_experience: '',
@@ -73,17 +81,37 @@ const HRJobs = () => {
     // eslint-disable-next-line
   }, [])
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (page = 1) => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (appliedFilters.status) params.append('status', appliedFilters.status)
-      // Note: search is handled client-side, so we don't send it to backend
+      // Add pagination parameters
+      params.append('page', page.toString())
+      params.append('limit', itemsPerPage.toString())
+      
       const response = await api.get(`/hr/jobs?${params.toString()}`)
-      setJobs(response.data)
+      
+      // Handle paginated response
+      if (response.data.jobs && response.data.pagination) {
+        setJobs(response.data.jobs)
+        setTotalPages(response.data.pagination.total_pages)
+        setTotalJobs(response.data.pagination.total_jobs)
+        setCurrentPage(response.data.pagination.page)
+      } else {
+        // Fallback for non-paginated response
+        setJobs(response.data)
+        setTotalPages(1)
+        setTotalJobs(response.data.length)
+        setCurrentPage(1)
+      }
     } catch (error) {
       console.error('Error fetching jobs:', error)
       toast.error('Failed to fetch jobs')
+      setJobs([])
+      setTotalPages(1)
+      setTotalJobs(0)
+      setCurrentPage(1)
     } finally {
       setLoading(false)
     }
@@ -91,9 +119,10 @@ const HRJobs = () => {
 
   const handleApplyFilters = () => {
     setAppliedFilters(filters)
+    setCurrentPage(1) // Reset to first page
     // For HR jobs, we only need to fetch if status filter changes
     // Search is handled client-side
-    fetchJobs()
+    fetchJobs(1)
   }
 
   const handleSearch = () => {
@@ -106,7 +135,8 @@ const HRJobs = () => {
     setFilters({ status: '' })
     setAppliedSearch('')
     setAppliedFilters({ status: '' })
-    fetchJobs()
+    setCurrentPage(1) // Reset to first page
+    fetchJobs(1)
   }
 
   const getStatusColor = (status) => {
@@ -169,6 +199,11 @@ const HRJobs = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+    fetchJobs(page)
   }
 
   const handleSaveCandidate = async () => {
@@ -236,6 +271,8 @@ const HRJobs = () => {
     }
   }
 
+  // For pagination, we show the jobs from the current page
+  // Client-side filtering is still applied to the current page results
   const filteredJobs = jobs.filter(job => {
     // Apply status filter
     if (appliedFilters.status && job.status !== appliedFilters.status) {
@@ -358,7 +395,7 @@ const HRJobs = () => {
             {/* Results Count */}
             <div className="flex items-center justify-end">
               <span className="text-sm text-slate-500 bg-slate-100 px-3 py-3 rounded-lg">
-                {filteredJobs.length} jobs found
+                {totalJobs} jobs found
               </span>
             </div>
           </div>
@@ -380,11 +417,11 @@ const HRJobs = () => {
           </div>
           <div className="flex items-center gap-2 text-blue-600">
             <Briefcase className="h-5 w-5" />
-            <span className="text-sm font-medium">Active Positions</span>
+            <span className="text-sm font-medium">{totalJobs} Active Positions</span>
           </div>
         </div>
 
-        {filteredJobs.length === 0 ? (
+        {totalJobs === 0 ? (
           <div className="text-center py-12">
             <Briefcase className="mx-auto h-12 w-12 text-gray-300 mb-4" />
             <p className="text-gray-500">No jobs found</p>
@@ -404,97 +441,120 @@ const HRJobs = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredJobs.map((job, index) => (
-                  <motion.tr
-                    key={job.job_id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: 0.02 * index }}
-                    className="hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <div className="text-sm font-medium text-gray-900">
-                          Job #{job.job_id}
-                        </div>
-                        <div className="text-sm font-semibold text-gray-900 mt-1">
-                          {job.title}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1 max-w-xs truncate" title={job.description}>
-                          {job.description}
-                        </div>
-                      </div>
+                {filteredJobs.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                      <Briefcase className="mx-auto h-8 w-8 text-gray-300 mb-2" />
+                      <p>No jobs match the current filters on this page</p>
+                      <p className="text-sm text-gray-400 mt-1">Try adjusting your search or filters</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                          {job.location}
+                  </tr>
+                ) : (
+                  filteredJobs.map((job, index) => (
+                    <motion.tr
+                      key={job.job_id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.02 * index }}
+                      className="hover:bg-gray-50 transition-colors duration-200"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <div className="text-sm font-medium text-gray-900">
+                            Job #{job.job_id}
+                          </div>
+                          <div className="text-sm font-semibold text-gray-900 mt-1">
+                            {job.title}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1 max-w-xs truncate" title={job.description}>
+                            {job.description}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Package: ₹{job.expected_package || job.salary_package || 'Not specified'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                            {job.location}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Package: ₹{job.expected_package || job.salary_package || 'Not specified'}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <div className="flex items-center text-sm text-gray-900">
-                          <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                          {job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                            {job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            End: {job.end_date ? new Date(job.end_date).toLocaleDateString() : 'N/A'}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500">
-                          End: {job.end_date ? new Date(job.end_date).toLocaleDateString() : 'N/A'}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
+                      </td>
+                      <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">
+                            {job.csa_id || 'N/A'}
+                          </div>
+                      </td>
+                      <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {job.csa_id || 'N/A'}
+                          {job.priority ? job.priority.charAt(0).toUpperCase() + job.priority.slice(1) : 'Not specified'}
                         </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {job.priority ? job.priority.charAt(0).toUpperCase() + job.priority.slice(1) : 'Not specified'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex px-3 py-1.5 text-xs font-semibold ${getJobStatusColor(
-                          job.status
-                        )}`}
-                      >
-                        {job.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleAddCandidate(job)}
-                          className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded transition-colors duration-200"
-                          title="Add Candidate"
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex px-3 py-1.5 text-xs font-semibold ${getJobStatusColor(
+                            job.status
+                          )}`}
                         >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleViewCandidates(job)}
-                          className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
-                          title="View Candidates"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>  
-                        <button
-                          onClick={() => handleUpdateStatus(job)}
-                          className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 rounded transition-colors duration-200"
-                          title="Update Status"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
+                          {job.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleAddCandidate(job)}
+                            className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded transition-colors duration-200"
+                            title="Add Candidate"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleViewCandidates(job)}
+                            className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
+                            title="View Candidates"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>  
+                          <button
+                            onClick={() => handleUpdateStatus(job)}
+                            className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 rounded transition-colors duration-200"
+                            title="Update Status"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
               </tbody>
             </table>
+          </div>
+        )}
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalJobs}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+            />
           </div>
         )}
       </motion.div>
