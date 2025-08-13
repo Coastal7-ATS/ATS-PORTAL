@@ -40,6 +40,7 @@ const AdminAddJob = () => {
   const [hrUsers, setHrUsers] = useState([])
   const [salaryBands, setSalaryBands] = useState([])
   const [loading, setLoading] = useState(true)
+  const [uploadResult, setUploadResult] = useState(null)
 
   // Manual form validation
   const {
@@ -233,37 +234,7 @@ const AdminAddJob = () => {
     }))
   }
 
-  // CSV profit percentage change handler
-  const handleCSVProfitPercentageChange = (rowId, percentage) => {
-    setPreviewData(prev => ({
-      ...prev,
-      data: prev.data.map(row => {
-        if (row.id === rowId) {
-          const newRow = { ...row, profit_percentage: percentage }
-          // Recalculate expected package if actual salary is also selected
-          if (row.actual_salary) {
-            const newExpected = calculateExpectedPackage(row.actual_salary, percentage)
-            newRow.expected_package = newExpected
-          }
-          return newRow
-        }
-        return row
-      })
-    }))
-  }
 
-  // CSV priority change handler
-  const handleCSVPriorityChange = (rowId, priority) => {
-    setPreviewData(prev => ({
-      ...prev,
-      data: prev.data.map(row => {
-        if (row.id === rowId) {
-          return { ...row, priority: priority }
-        }
-        return row
-      })
-    }))
-  }
 
   // Enhanced CSV parsing with proper handling of quoted fields and special characters
   const parseCSV = (file) => {
@@ -277,16 +248,49 @@ const AdminAddJob = () => {
       const headers = parseCSVLine(lines[0]).map(h => h.trim())
       
       // Parse data rows
-      const parsedData = lines.slice(1).map((line, idx) => {
+      let parsedData = lines.slice(1).map((line, idx) => {
         const values = parseCSVLine(line)
         const row = {}
         headers.forEach((header, colIdx) => {
           row[header] = values[colIdx]?.trim() || ''
         })
-        row.assigned_hr = ''
         row.id = idx
         return row
       })
+
+      // Normalize and pre-compute packages for preview
+      parsedData = parsedData.map((row) => {
+        const band = row.salary_band || row.band || row['Band'] || ''
+        const rate = (row.salary_rate || row.rate || row['Rate'] || '').toString().toLowerCase()
+        const profit = row.profit_percentage || row['profit_percentage'] || row['Profit Percentage'] || ''
+        const assignedHr = row.assigned_hr || row['assigned_hr'] || row['Assigned HR'] || ''
+        const startDate = row.start_date || row['Start Date'] || row['start_date'] || ''
+        const endDate = row.end_date || row['End Date'] || row['end_date'] || ''
+        const priority = row.priority || row['Priority'] || ''
+
+        let actual = ''
+        if (band && rate) {
+          actual = calculateActualSalary(band, rate)
+        }
+        let expected = ''
+        if (actual && profit) {
+          expected = calculateExpectedPackage(actual, profit)
+        }
+
+        return {
+          ...row,
+          salary_band: band,
+          salary_rate: rate,
+          profit_percentage: profit,
+          assigned_hr: assignedHr,
+          start_date: startDate,
+          end_date: endDate,
+          priority: priority,
+          actual_salary: actual,
+          expected_package: expected
+        }
+      })
+
       setPreviewData({ headers, data: parsedData })
     }
     reader.readAsText(file)
@@ -347,14 +351,46 @@ const AdminAddJob = () => {
         }
         
         const headers = jsonData[0].map(h => h?.toString().trim() || '')
-        const parsedData = jsonData.slice(1).map((row, idx) => {
+        let parsedData = jsonData.slice(1).map((row, idx) => {
           const rowObj = {}
           headers.forEach((header, colIdx) => {
             rowObj[header] = row[colIdx]?.toString().trim() || ''
           })
-          rowObj.assigned_hr = ''
           rowObj.id = idx
           return rowObj
+        })
+        
+        // Normalize and pre-compute packages for preview
+        parsedData = parsedData.map((row) => {
+          const band = row.salary_band || row.band || row['Band'] || ''
+          const rate = (row.salary_rate || row.rate || row['Rate'] || '').toString().toLowerCase()
+          const profit = row.profit_percentage || row['profit_percentage'] || row['Profit Percentage'] || ''
+          const assignedHr = row.assigned_hr || row['assigned_hr'] || row['Assigned HR'] || ''
+          const startDate = row.start_date || row['Start Date'] || row['start_date'] || ''
+          const endDate = row.end_date || row['End Date'] || row['end_date'] || ''
+          const priority = row.priority || row['Priority'] || ''
+
+          let actual = ''
+          if (band && rate) {
+            actual = calculateActualSalary(band, rate)
+          }
+          let expected = ''
+          if (actual && profit) {
+            expected = calculateExpectedPackage(actual, profit)
+          }
+
+          return {
+            ...row,
+            salary_band: band,
+            salary_rate: rate,
+            profit_percentage: profit,
+            assigned_hr: assignedHr,
+            start_date: startDate,
+            end_date: endDate,
+            priority: priority,
+            actual_salary: actual,
+            expected_package: expected
+          }
         })
         
         setPreviewData({ headers, data: parsedData })
@@ -402,23 +438,31 @@ const AdminAddJob = () => {
     setUploading(true)
     try {
       const jobsData = previewData.data.map(row => ({
-        title: row.title || row['Job Title'] || '',
-        description: row.description || row['Job Description'] || '',
-        location: row.location || row['Location'] || '',
-        actual_salary: row.actual_salary || row['Actual Salary'] || row.ctc || row['CTC'] || row.package || row['Package'] || '',
-        salary_band: row.salary_band || row['Salary Band'] || '',
-        salary_rate: row.salary_rate || row['Salary Rate'] || '',
-        profit_percentage: row.profit_percentage || row['Profit Percentage'] || '',
-        expected_package: row.expected_package || row['Expected Package'] || '',
-        priority: row.priority || row['Priority'] || '',
-        csa_id: row.csa_id || row['CSA ID'] || '',
-        start_date: row.start_date || row['Start Date'] || '',
-        end_date: row.end_date || row['End Date'] || '',
-        assigned_hr: row.assigned_hr || null
+        csa_id: row.csa_id || '',
+        title: row.title || '',
+        description: row.description || '',
+        location: row.location || '',
+        salary_band: row.salary_band || row.band || '',
+        salary_rate: row.salary_rate || row.rate || '',
+        actual_salary: row.actual_salary || '',
+        profit_percentage: row.profit_percentage || '',
+        expected_package: row.expected_package || '',
+        assigned_hr: row.assigned_hr || '',
+        start_date: row.start_date || row['Start Date'] || row['start_date'] || '',
+        end_date: row.end_date || row['End Date'] || row['end_date'] || '',
+        priority: row.priority || ''
       }))
       const response = await api.post('/admin/add-jobs-bulk', jobsData)
-      toast.success(response.data.message)
-      navigate('/admin/jobs')
+      if (response.data && typeof response.data === 'object' && 'added_count' in response.data) {
+        setUploadResult(response.data)
+        toast.success(`Added ${response.data.added_count} jobs. Skipped ${response.data.skipped_count}.`)
+      } else if (response.data?.message) {
+        toast.success(response.data.message)
+        navigate('/admin/jobs')
+      } else {
+        toast.success('Jobs processed')
+        navigate('/admin/jobs')
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to add jobs')
     } finally {
@@ -429,14 +473,11 @@ const AdminAddJob = () => {
   // Enhanced header validation for new format
   const validateHeaders = () => {
     if (!previewData) return false
-    const requiredHeaders = ['title', 'description', 'location', 'csa_id', 'start_date', 'end_date']
+    const requiredHeaders = ['csa_id', 'title', 'description']
     const headerMap = {
-      'title': ['title', 'job title'],
-      'description': ['description', 'job description'],
-      'location': ['location'],
       'csa_id': ['csa_id', 'csa id'],
-      'start_date': ['start_date', 'start date'],
-      'end_date': ['end_date', 'end date']
+      'title': ['title', 'job title'],
+      'description': ['description', 'job description']
     }
     
     const missing = requiredHeaders.filter(requiredHeader => {
@@ -449,41 +490,18 @@ const AdminAddJob = () => {
     return missing.length === 0
   }
 
-  // Assign HR in CSV preview
-  const handleAssignHRChange = (rowId, hrId) => {
-    if (!previewData) return
-    const updatedData = previewData.data.map(row =>
-      row.id === rowId ? { ...row, assigned_hr: hrId } : row
-    )
-    setPreviewData({ ...previewData, data: updatedData })
-  }
 
-  const hrOptions = [
+
+  const hrOptionsManual = [
     { value: '', label: 'Select HR User' },
-    ...hrUsers.map(hr => ({
-      value: hr.id,
-      label: hr.name
-    }))
+    ...hrUsers.map(hr => ({ value: hr.id, label: hr.name }))
   ]
+
+
 
   // Updated download sample CSV function with new format
   const downloadSampleCSV = () => {
-    const csvContent = `title,description,location,csa_id,start_date,end_date
-Software Engineer,"Develop and maintain web applications using React and Node.js. Responsibilities include:
-• Building responsive user interfaces
-• Implementing RESTful APIs
-• Writing clean, maintainable code
-• Collaborating with cross-functional teams",Bangalore,ABC123,2024-01-15,2024-03-15
-Data Analyst,"Analyze data and create reports using Python and SQL. Key tasks:
-• Data cleaning and preprocessing
-• Statistical analysis and modeling
-• Creating visualizations and dashboards
-• Presenting findings to stakeholders",Mumbai,DEF456,2024-01-20,2024-02-20
-DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include:
-• AWS/Azure infrastructure management
-• Docker containerization
-• Jenkins pipeline configuration
-• Monitoring and logging setup",Hyderabad,GHI789,2024-01-25,2024-04-25`
+    const csvContent = `csa_id,title,description,location,band,rate,profit_percentage,start_date,end_date,priority,assigned_hr`
     
     const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
@@ -735,7 +753,7 @@ DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include
                 <ValidatedSelect
                   name="assigned_hr"
                   label="Assign to HR"
-                  options={hrOptions}
+                  options={hrOptionsManual}
                   value={manualForm.assigned_hr}
                   onChange={(name, value) => handleChange(name, value)}
                   onBlur={handleBlur}
@@ -868,77 +886,61 @@ DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include
                     </div>
                     
                     <div className="overflow-x-auto">
-                                              <table className="min-w-full bg-white border border-gray-200 rounded-xl overflow-hidden">
+                        <table className="min-w-full bg-white border border-gray-200 rounded-xl overflow-hidden">
                           <thead className="bg-gray-50">
                             <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] w-[200px]">CSA ID</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] w-[200px]">CSA ID</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary Band</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate Type</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Salary</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Band</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit Percentage</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Package</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned HR</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Package</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Value</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
                             {previewData.data.slice(0, 5).map((row) => (
                               <tr key={row.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
-                                  {row.title || row['Job Title'] || ''}
+                                <td className="px-4 py-3 text-sm text-gray-900 min-w-[200px] w-[200px]">
+                                  {row.csa_id || ''}
                                 </td>
-                                <td className="px-4 py-3 text-sm text-gray-900 max-w-xs">
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {row.title || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
                                   <div className="max-h-20 overflow-y-auto">
-                                    {row.description || row['Job Description'] || ''}
+                                    {row.description || ''}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-900">
-                                  {row.location || row['Location'] || ''}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-900 min-w-[200px] w-[200px]">
-                                  <input
-                                    type="text"
-                                    value={row.csa_id || row['CSA ID'] || ''}
-                                    onChange={e => {
-                                      const updatedData = previewData.data.map(r => 
-                                        r.id === row.id ? { ...r, csa_id: e.target.value } : r
-                                      )
-                                      setPreviewData({ ...previewData, data: updatedData })
-                                    }}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                    placeholder="Enter CSA ID"
-                                  />
+                                  {row.location || ''}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-900">
-                                  <select
-                                    value={row.salary_band || ''}
-                                    onChange={e => handleCSVSalaryBandChange(row.id, e.target.value)}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                  >
-                                    <option value="">Select Band</option>
-                                    {salaryBands.map(band => (
-                                      <option key={band.band} value={band.band}>
-                                        {band.band}{band.experience_range ? ` (${band.experience_range})` : ''}
-                                      </option>
-                                    ))}
-                                  </select>
+                                  {row.salary_band || row.band || ''}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-900">
-                                  <select
-                                    value={row.salary_rate || ''}
-                                    onChange={e => handleCSVSalaryRateChange(row.id, e.target.value)}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                  >
-                                    <option value="">Select Rate</option>
-                                    <option value="standard">Standard</option>
-                                    <option value="ra1">RA1</option>
-                                    <option value="ra2">RA2</option>
-                                  </select>
+                                  {row.salary_rate || row.rate || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {row.profit_percentage || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {row.start_date || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {row.end_date || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {row.priority || ''}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {row.assigned_hr || ''}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-900">
                                   <input
@@ -952,52 +954,11 @@ DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include
                                 <td className="px-4 py-3 text-sm text-gray-900">
                                   <input
                                     type="text"
-                                    value={row.profit_percentage || ''}
-                                    onChange={e => handleCSVProfitPercentageChange(row.id, e.target.value)}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                    placeholder="Enter %"
-                                  />
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-900">
-                                  <input
-                                    type="text"
                                     value={row.expected_package || ''}
                                     readOnly
                                     className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md bg-gray-50"
                                     placeholder="Calculated automatically"
                                   />
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-900">
-                                  <select
-                                    value={row.priority || ''}
-                                    onChange={e => handleCSVPriorityChange(row.id, e.target.value)}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                  >
-                                    <option value="">Select Priority</option>
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                  </select>
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-900">
-                                  {row.start_date || row['Start Date'] || ''}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-900">
-                                  {row.end_date || row['End Date'] || ''}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-900">
-                                  <select
-                                    value={row.assigned_hr}
-                                    onChange={e => handleAssignHRChange(row.id, e.target.value)}
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                                  >
-                                    <option value="">Select HR</option>
-                                    {hrUsers.map(hr => (
-                                      <option key={hr.id} value={hr.id}>
-                                        {hr.name}
-                                      </option>
-                                    ))}
-                                  </select>
                                 </td>
                               </tr>
                             ))}
@@ -1006,6 +967,44 @@ DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include
                       {previewData.data.length > 5 && (
                         <div className="text-center text-sm text-gray-500 mt-2">
                           Showing first 5 rows of {previewData.data.length} total rows
+                        </div>
+                      )}
+                      {uploadResult && (
+                        <div className="mt-6 p-4 border border-gray-200 rounded-xl bg-gray-50">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-800">
+                              <span className="font-semibold">Added:</span> {uploadResult.added_count} &nbsp;|&nbsp; <span className="font-semibold">Skipped:</span> {uploadResult.skipped_count}
+                            </div>
+                            <button
+                              onClick={() => navigate('/admin/jobs')}
+                              className="px-3 py-1.5 text-sm rounded-lg bg-primary-600 text-white hover:bg-primary-700"
+                            >
+                              Go to Jobs
+                            </button>
+                          </div>
+                          {Array.isArray(uploadResult.skipped_rows) && uploadResult.skipped_rows.length > 0 && (
+                            <div className="mt-3 max-h-48 overflow-auto bg-white border border-gray-200 rounded-lg">
+                              <table className="min-w-full text-sm">
+                                <thead className="bg-gray-100">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left text-gray-600">Row</th>
+                                    <th className="px-3 py-2 text-left text-gray-600">Reasons</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {uploadResult.skipped_rows.slice(0, 50).map((r, i) => (
+                                    <tr key={i} className="border-t">
+                                      <td className="px-3 py-2 text-gray-800">{r.row_index}</td>
+                                      <td className="px-3 py-2 text-gray-700">{(r.reasons || []).join(', ')}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                              {uploadResult.skipped_rows.length > 50 && (
+                                <div className="text-xs text-gray-500 px-3 py-2">Showing first 50 of {uploadResult.skipped_rows.length} skipped rows</div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1052,6 +1051,11 @@ DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                       <div className="flex items-center gap-2">
                         <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        <span className="font-medium">csa_id</span>
+                        <span className="text-blue-600">(Primary Key)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                         <span className="font-medium">title</span>
                         <span className="text-blue-600">(Job Title)</span>
                       </div>
@@ -1060,26 +1064,13 @@ DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include
                         <span className="font-medium">description</span>
                         <span className="text-blue-600">(Job Description)</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        <span className="font-medium">location</span>
-                        <span className="text-blue-600">(Job Location)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        <span className="font-medium">csa_id</span>
-                        <span className="text-blue-600">(CSA ID - Primary Key)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        <span className="font-medium">start_date</span>
-                        <span className="text-blue-600">(Start Date)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        <span className="font-medium">end_date</span>
-                        <span className="text-blue-600">(End Date)</span>
-                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold text-blue-900 mb-2">Column Order:</h4>
+                    <div className="text-sm text-blue-800 bg-blue-100 p-3 rounded-lg">
+                      <code>csa_id, title, description, location, band, rate, profit_percentage, start_date, end_date, priority, assigned_hr</code>
                     </div>
                   </div>
                   
@@ -1087,7 +1078,12 @@ DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include
                     <h4 className="font-semibold text-blue-900 mb-2">Special Handling:</h4>
                     <ul className="space-y-1 text-sm text-blue-800">
                       <li>• <strong>Job Description:</strong> Supports long text with paragraphs, bullet points, commas, and special characters</li>
-                      <li>• <strong>CSA ID:</strong> Must be unique and can be edited after upload</li>
+                      <li>• <strong>CSA ID:</strong> Must be unique across the system</li>
+                      <li>• <strong>Band/Rate:</strong> Optional; Rate must be one of <em>standard</em>, <em>ra1</em>, <em>ra2</em></li>
+                      <li>• <strong>Priority:</strong> Optional; use <em>low</em>, <em>medium</em>, or <em>high</em></li>
+                      <li>• <strong>Assigned HR:</strong> Optional; provide HR <em>username</em> (case-insensitive)</li>
+                      <li>• <strong>Profit %:</strong> Optional integer (e.g., 15)</li>
+                      <li>• <strong>Dates:</strong> Use dd-mm-yyyy format (e.g., 01-09-2025)</li>
                       <li>• <strong>File Formats:</strong> CSV (.csv) and Excel (.xlsx, .xls) are supported</li>
                       <li>• <strong>CSV Format:</strong> Use quotes around text fields to handle commas and special characters</li>
                     </ul>
@@ -1097,10 +1093,10 @@ DevOps Engineer,"Manage cloud infrastructure and CI/CD pipelines. Duties include
                     <div className="font-semibold mb-1">💡 Tips:</div>
                     <ul className="space-y-1">
                       <li>• Use quotes around text values to handle commas and special characters</li>
-                      <li>• Ensure all required columns are present</li>
-                      <li>• Don't include empty rows at the end</li>
+                      <li>• Ensure required columns (csa_id, title, description) are present</li>
+                      <li>• Band and Rate drive automatic package calculation (rate × 1920)</li>
+                      <li>• Profit percentage drives expected value calculation</li>
                       <li>• CSA ID must be unique (alphanumeric characters)</li>
-                      <li>• Job descriptions can include paragraphs, bullet points, and formatting</li>
                     </ul>
                   </div>
                   <div className="mt-4 flex justify-center">

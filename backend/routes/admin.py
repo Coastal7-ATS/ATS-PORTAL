@@ -134,45 +134,161 @@ async def add_job(job_data: dict, current_user: dict = Depends(get_current_admin
 @router.post("/add-jobs-bulk")
 async def add_jobs_bulk(jobs_data: List[dict], current_user: dict = Depends(get_current_admin_user)):
     db = await get_database()
-    
-    jobs_added = 0
-    for job_data in jobs_data:
-        # Generate unique job ID - smaller format
+
+    added_count = 0
+    skipped_rows = []
+
+    # Preload HR users (for username lookup, case-insensitive)
+    hr_users = await db.recruitment_portal.users.find({"role": "hr"}, {"name": 1}).to_list(length=500)
+    name_to_id = {u["name"].lower(): str(u["_id"]) for u in hr_users}
+
+    # Track CSA IDs within batch to enforce uniqueness per request
+    seen_csa_ids = set()
+
+    # Load salary bands for band->rate lookup
+    salary_bands = await db.recruitment_portal.salary_bands.find({}).to_list(length=100)
+    band_map = {b["band"]: b for b in salary_bands}
+
+    async def is_csa_unique(csa_id: str) -> bool:
+        existing = await db.recruitment_portal.jobs.find_one({"csa_id": csa_id})
+        return existing is None
+
+    def compute_actual(band: str, rate: str) -> str:
+        if not band or not rate:
+            return ""
+        band_doc = band_map.get(band)
+        if not band_doc:
+            return ""
+        rate_key = rate.lower()
+        if rate_key not in ("standard", "ra1", "ra2"):
+            return ""
+        rate_value = band_doc.get(rate_key)
+        if rate_value is None:
+            return ""
+        return str(rate_value * 1920)
+
+    def compute_expected(actual: str, profit: str) -> str:
+        try:
+            if not actual or not profit:
+                return ""
+            actual_f = float(actual)
+            profit_f = float(profit)
+            return str(actual_f - (actual_f * (profit_f / 100.0)))
+        except Exception:
+            return ""
+
+    for index, raw in enumerate(jobs_data):
+        reasons = []
+
+        # Normalize fields per spec
+        csa_id = str(raw.get("csa_id", "")).strip()
+        title = str(raw.get("title", "")).strip()
+        description = str(raw.get("description", "")).strip()
+        location = str(raw.get("location", "")).strip() if raw.get("location") else ""
+        band = str(raw.get("salary_band") or raw.get("band") or "").strip()
+        rate = str(raw.get("salary_rate") or raw.get("rate") or "").strip().lower()
+        profit_percentage = str(raw.get("profit_percentage") or "").strip()
+        assigned_hr_username = str(raw.get("assigned_hr") or "").strip()
+        start_date_raw = str(raw.get("start_date") or "").strip()
+        end_date_raw = str(raw.get("end_date") or "").strip()
+        priority = str(raw.get("priority") or "").strip()
+
+        # Required field checks
+        if not csa_id:
+            reasons.append("csa_id is required")
+        if not title:
+            reasons.append("title is required")
+        if not description:
+            reasons.append("description is required")
+
+        # Enforce rate values if present
+        if rate and rate not in ("standard", "ra1", "ra2"):
+            reasons.append("invalid rate; must be standard, ra1, or ra2")
+
+        # CSA uniqueness in batch
+        if csa_id:
+            if csa_id in seen_csa_ids:
+                reasons.append("duplicate csa_id in upload batch")
+            else:
+                # Check uniqueness in DB
+                if not await is_csa_unique(csa_id):
+                    reasons.append("csa_id already exists in database")
+            
+        # Resolve assigned HR by username (case-insensitive)
+        assigned_hr_id = None
+        if assigned_hr_username:
+            assigned_hr_id = name_to_id.get(assigned_hr_username.lower())
+            if not assigned_hr_id:
+                reasons.append("assigned_hr username not found")
+
+        # Compute actual and expected if possible
+        salary_package = str(raw.get("actual_salary") or raw.get("salary_package") or "").strip()
+        if not salary_package and band and rate:
+            salary_package = compute_actual(band, rate)
+        expected_package = str(raw.get("expected_package") or "").strip()
+        if not expected_package and salary_package and profit_percentage:
+            expected_package = compute_expected(salary_package, profit_percentage)
+
+        # Parse dates if present (dd-mm-yyyy). If invalid, set empty
+        def parse_dd_mm_yyyy(value: str):
+            if not value:
+                return ""
+            try:
+                # pandas not used here; manual parse
+                parts = value.replace("/", "-").split("-")
+                if len(parts) != 3:
+                    return ""
+                dd, mm, yyyy = parts[0].zfill(2), parts[1].zfill(2), parts[2]
+                if len(yyyy) != 4:
+                    return ""
+                return f"{yyyy}-{mm}-{dd}"
+            except Exception:
+                return ""
+
+        start_date = parse_dd_mm_yyyy(start_date_raw)
+        end_date = parse_dd_mm_yyyy(end_date_raw)
+
+        # Skip row if any reasons collected
+        if reasons:
+            skipped_rows.append({"row_index": index + 1, "reasons": reasons})
+            continue
+
+        # Build final job document
         job_id = f"jb{datetime.now().strftime('%m%d%H%M')}{random.randint(10, 99)}"
-        
-        job_data["job_id"] = job_id
-        job_data["uploaded_by"] = str(current_user["_id"])
-        status = job_data.get("status", "open")
-        if status not in MANUAL_JOB_STATUSES:
-            status = "open"
-        job_data["status"] = status
-        job_data["created_at"] = datetime.now(timezone.utc)
-        
-        # Handle salary package - support multiple field names for backward compatibility
-        salary_fields = ['actual_salary', 'ctc', 'package', 'salary_package']
-        salary_package = ""
-        for field in salary_fields:
-            if field in job_data and job_data[field]:
-                salary_package = str(job_data[field])
-                break
-        job_data["salary_package"] = salary_package
-        
-        job_data["source_company"] = "File Upload"
-        
-        # Set default dates if not provided
-        if "start_date" not in job_data or not job_data["start_date"]:
-            job_data["start_date"] = datetime.now(timezone.utc)
-        if "end_date" not in job_data or not job_data["end_date"]:
-            job_data["end_date"] = datetime.now(timezone.utc)
-        
-        # Clean and validate CSA ID
-        if "csa_id" in job_data:
-            job_data["csa_id"] = str(job_data["csa_id"]).strip()
-        
-        result = await db.recruitment_portal.jobs.insert_one(job_data)
-        jobs_added += 1
-    
-    return {"message": f"Successfully added {jobs_added} jobs"}
+        job_doc = {
+            "job_id": job_id,
+            "title": title,
+            "description": description,
+            "location": location,
+            "salary_band": band or None,
+            "salary_rate": rate or None,
+            "salary_package": salary_package or "",
+            "profit_percentage": profit_percentage or None,
+            "expected_package": expected_package or None,
+            "csa_id": csa_id,
+            "priority": priority or None,
+            "uploaded_by": str(current_user["_id"]),
+            "status": "open",
+            "created_at": datetime.now(timezone.utc),
+            "source_company": "File Upload"
+        }
+
+        if assigned_hr_id:
+            job_doc["assigned_hr"] = assigned_hr_id
+
+        # Store parsed dates (or empty if missing/invalid)
+        job_doc["start_date"] = start_date
+        job_doc["end_date"] = end_date
+
+        await db.recruitment_portal.jobs.insert_one(job_doc)
+        added_count += 1
+        seen_csa_ids.add(csa_id)
+
+    return {
+        "added_count": added_count,
+        "skipped_count": len(skipped_rows),
+        "skipped_rows": skipped_rows
+    }
 
 @router.put("/jobs/{job_id}")
 async def update_job(
