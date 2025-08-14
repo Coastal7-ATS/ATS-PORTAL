@@ -2,11 +2,11 @@ import axios from 'axios'
 import { toast } from 'react-toastify'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000',
+  baseURL: 'http://13.232.125.6:8000',
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 15000,
+  timeout: 15000,
 })
 
 // Add token to requests if available
