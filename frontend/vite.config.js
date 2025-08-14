@@ -10,6 +10,10 @@ export default defineConfig({
         target: process.env.VITE_BACKEND_URL || 'http://13.232.125.6:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/auth': {
+        target: process.env.VITE_BACKEND_URL || 'http://13.232.125.6:8000',
+        changeOrigin: true
       }
     }
   }
