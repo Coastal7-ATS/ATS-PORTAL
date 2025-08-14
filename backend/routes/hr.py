@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from bson import ObjectId
 from typing import Optional
-from routes.auth import get_current_hr_user
+from models import CandidateCreate
+from routes.auth import get_current_hr_user, get_password_hash, verify_password
 from database import get_database
 from routes.shared import update_expired_job_statuses
 
@@ -95,9 +96,6 @@ async def get_candidates_for_job(
 ):
     db = await get_database()
     
-    # Update expired job statuses first
-    await update_expired_job_statuses()
-    
     # Verify job is allocated to this HR
     job = await db.recruitment_portal.jobs.find_one({
         "job_id": job_id,
@@ -134,9 +132,6 @@ async def update_candidate_status(
     current_user: dict = Depends(get_current_hr_user)
 ):
     db = await get_database()
-    
-    # Update expired job statuses first
-    await update_expired_job_statuses()
     
     # Get candidate and verify job is allocated to this HR
     candidate = await db.recruitment_portal.candidates.find_one({"_id": ObjectId(candidate_id)})
@@ -182,9 +177,6 @@ async def update_candidate_status(
 async def get_all_hr_candidates(current_user: dict = Depends(get_current_hr_user)):
     db = await get_database()
     
-    # Update expired job statuses first
-    await update_expired_job_statuses()
-    
     # Get jobs allocated to this HR
     jobs = await db.recruitment_portal.jobs.find({"assigned_hr": str(current_user["_id"])}).to_list(length=100)
     job_id_list = [job["job_id"] for job in jobs]
@@ -215,9 +207,6 @@ async def get_all_hr_candidates(current_user: dict = Depends(get_current_hr_user
 async def get_hr_dashboard(current_user: dict = Depends(get_current_hr_user)):
     db = await get_database()
     
-    # Update expired job statuses first
-    await update_expired_job_statuses()
-    
     # Get job counts
     total_jobs = await db.recruitment_portal.jobs.count_documents({"assigned_hr": str(current_user["_id"])})
     open_jobs = await db.recruitment_portal.jobs.count_documents({"assigned_hr": str(current_user["_id"]), "status": "open"})
@@ -229,11 +218,12 @@ async def get_hr_dashboard(current_user: dict = Depends(get_current_hr_user)):
     jobs = await db.recruitment_portal.jobs.find({"assigned_hr": str(current_user["_id"])}).to_list(length=100)
     job_id_list = [job["job_id"] for job in jobs]
     total_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}})
-    selected_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "selected"})
-    rejected_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "rejected"})
-    in_progress_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "in_progress"})
-    interviewed_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "interviewed"})
     applied_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "applied"})
+    screen_reject_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "screen_reject"})
+    interview_selected_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "interview_selected"})
+    interview_reject_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "interview_reject"})
+    no_show_for_joining_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "no_show_for_joining"})
+    placed_candidates = await db.recruitment_portal.candidates.count_documents({"job_id": {"$in": job_id_list}, "status": "placed"})
     
     return {
         "total_jobs": total_jobs,
@@ -242,9 +232,40 @@ async def get_hr_dashboard(current_user: dict = Depends(get_current_hr_user)):
         "submitted_jobs": submitted_jobs,
         "demand_closed_jobs": demand_closed_jobs,
         "total_candidates": total_candidates,
-        "selected_candidates": selected_candidates,
-        "rejected_candidates": rejected_candidates,
-        "in_progress_candidates": in_progress_candidates,
-        "interviewed_candidates": interviewed_candidates,
-        "applied_candidates": applied_candidates
-    } 
+        "applied_candidates": applied_candidates,
+        "screen_reject_candidates": screen_reject_candidates,
+        "interview_selected_candidates": interview_selected_candidates,
+        "interview_reject_candidates": interview_reject_candidates,
+        "no_show_for_joining_candidates": no_show_for_joining_candidates,
+        "placed_candidates": placed_candidates
+    }
+
+@router.put("/change-password")
+async def change_password(
+    password_data: dict,
+    current_user: dict = Depends(get_current_hr_user)
+):
+    current_password = password_data.get("current_password")
+    new_password = password_data.get("new_password")
+    """
+    Change password for HR user.
+    """
+    db = await get_database()
+    
+    # Verify current password
+    if not verify_password(current_password, current_user["password"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Hash new password
+    hashed_new_password = get_password_hash(new_password)
+    
+    # Update password in database
+    result = await db.recruitment_portal.users.update_one(
+        {"_id": current_user["_id"]},
+        {"$set": {"password": hashed_new_password}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=500, detail="Failed to update password")
+    
+    return {"message": "Password updated successfully"}

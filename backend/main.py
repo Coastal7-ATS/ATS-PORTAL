@@ -5,13 +5,14 @@ from database import connect_to_mongo, close_mongo_connection
 from error_handlers import register_exception_handlers
 from routes import auth, admin, hr, shared
 from routes.shared import update_expired_job_statuses
+from config import settings
 
 app = FastAPI(title="Recruitment Portal API", version="1.0.0")
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost", "http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:80", "http://3.109.153.64", "http://3.109.153.64:80"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,8 +43,8 @@ async def periodic_job_status_check():
     """
     while True:
         try:
-            # Check for expired jobs every hour (3600 seconds)
-            await asyncio.sleep(3600)
+            # Check for expired jobs based on configuration
+            await asyncio.sleep(settings.JOB_STATUS_CHECK_INTERVAL)
             await update_expired_job_statuses()
             print("Background task: Checked and updated expired job statuses")
         except Exception as e:
@@ -53,4 +54,4 @@ async def periodic_job_status_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+    uvicorn.run(app, host=settings.BACKEND_HOST, port=settings.BACKEND_PORT) 

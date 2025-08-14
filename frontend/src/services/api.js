@@ -6,7 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000, // Increased timeout to 15 seconds
+  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 15000,
 })
 
 // Add token to requests if available
@@ -88,12 +88,13 @@ api.interceptors.response.use(
 )
 
 // Enhanced retry logic for failed requests
-const retryRequest = async (config, retries = 2) => {
+const retryRequest = async (config, retries = parseInt(import.meta.env.VITE_API_RETRY_ATTEMPTS) || 2) => {
   try {
     return await api(config)
   } catch (error) {
     if (retries > 0 && (error.response?.status >= 500 || !error.response)) {
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
+      const delay = parseInt(import.meta.env.VITE_API_RETRY_DELAY) || 1000
+      await new Promise(resolve => setTimeout(resolve, delay))
       return retryRequest(config, retries - 1)
     }
     throw error

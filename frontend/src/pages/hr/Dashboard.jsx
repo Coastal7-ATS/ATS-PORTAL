@@ -6,12 +6,14 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  XCircle as XCircleIcon,
   Plus,
   Eye,
   Calendar,
   MapPin,
   User,
-  TrendingUp
+  TrendingUp,
+  Award
 } from 'lucide-react'
 import { Doughnut, Bar } from 'react-chartjs-2'
 import {
@@ -40,11 +42,9 @@ ChartJS.register(
 const HRDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [recentJobs, setRecentJobs] = useState([])
 
   useEffect(() => {
     fetchDashboardData()
-    fetchRecentJobs()
     // eslint-disable-next-line
   }, [])
 
@@ -59,14 +59,7 @@ const HRDashboard = () => {
     }
   }
 
-  const fetchRecentJobs = async () => {
-    try {
-      const response = await api.get('/hr/jobs?limit=5')
-      setRecentJobs(response.data.slice(0, 5))
-    } catch (error) {
-      console.error('Error fetching recent jobs:', error)
-    }
-  }
+
 
   // Stats config
   const stats = [
@@ -95,29 +88,52 @@ const HRDashboard = () => {
       color: 'from-purple-500 to-indigo-500'
     },
     {
-      name: 'Demand Closed',
-      value: dashboardData?.demand_closed_jobs || 0,
-      icon: XCircle,
-      color: 'from-red-500 to-pink-500'
+      name: 'Applied',
+      value: dashboardData?.applied_candidates || 0,
+      icon: Users,
+      color: 'from-blue-500 to-indigo-500'
     },
     {
-      name: 'Total Candidates',
-      value: dashboardData?.total_candidates || 0,
-      icon: Users,
-      color: 'from-success-500 to-emerald-500'
+      name: 'Screen Reject',
+      value: dashboardData?.screen_reject_candidates || 0,
+      icon: XCircle,
+      color: 'from-red-500 to-rose-600'
+    },
+    {
+      name: 'Interview Select',
+      value: dashboardData?.interview_selected_candidates || 0,
+      icon: CheckCircle,
+      color: 'from-green-500 to-emerald-600'
+    },
+    {
+      name: 'Interview Reject',
+      value: dashboardData?.interview_reject_candidates || 0,
+      icon: XCircleIcon,
+      color: 'from-orange-500 to-red-500'
+    },
+    {
+      name: 'No Show for Joining',
+      value: dashboardData?.no_show_for_joining_candidates || 0,
+      icon: XCircle,
+      color: 'from-purple-500 to-pink-500'
+    },
+    {
+      name: 'Placed',
+      value: dashboardData?.placed_candidates || 0,
+      icon: Award,
+      color: 'from-yellow-500 to-amber-600'
     },
   ]
 
   // Chart data
   const jobStatusData = {
-    labels: ['Open', 'Closed', 'Submitted', 'Demand Closed'],
+    labels: ['Open', 'Closed', 'Submitted'],
     datasets: [
       {
         data: [
           dashboardData?.open_jobs || 0,
           dashboardData?.closed_jobs || 0,
           dashboardData?.submitted_jobs || 0,
-          dashboardData?.demand_closed_jobs || 0,
         ],
         backgroundColor: function(context) {
           const chart = context.chart;
@@ -151,14 +167,6 @@ const HRDashboard = () => {
               gradient.addColorStop(0.5, '#8b5cf6'); // medium purple
               gradient.addColorStop(1, '#7c3aed'); // deep purple
               return gradient;
-            },
-            // Demand Closed - Red gradient (more vibrant)
-            () => {
-              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
-              gradient.addColorStop(0, '#ef4555');
-              gradient.addColorStop(0.5, '#dc2626');
-              gradient.addColorStop(1, '#b91c1c');
-              return gradient;
             }
           ];
           
@@ -169,14 +177,17 @@ const HRDashboard = () => {
   }
 
   const candidateStatusData = {
-    labels: ['Selected', 'Rejected', 'Applied'],
+    labels: ['Applied', 'Screen Reject', 'Interview Select', 'Interview Reject', 'No Show for Joining', 'Placed'],
     datasets: [
       {
         label: 'Candidates',
         data: [
-          dashboardData?.selected_candidates || 0,
-          dashboardData?.rejected_candidates || 0,
-          (dashboardData?.total_candidates || 0) - (dashboardData?.selected_candidates || 0) - (dashboardData?.rejected_candidates || 0),
+          dashboardData?.applied_candidates || 0,
+          dashboardData?.screen_reject_candidates || 0,
+          dashboardData?.interview_selected_candidates || 0,
+          dashboardData?.interview_reject_candidates || 0,
+          dashboardData?.no_show_for_joining_candidates || 0,
+          dashboardData?.placed_candidates || 0,
         ],
         backgroundColor: function(context) {
           const chart = context.chart;
@@ -187,15 +198,15 @@ const HRDashboard = () => {
           
           const index = context.dataIndex;
           const colors = [
-            // Selected - Green gradient
+            // Applied - Blue gradient
             () => {
               const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
-              gradient.addColorStop(0, '#86efac');
-              gradient.addColorStop(0.5, '#4ade80');
-              gradient.addColorStop(1, '#22c55e');
+              gradient.addColorStop(0, '#93c5fd');
+              gradient.addColorStop(0.5, '#3b82f6');
+              gradient.addColorStop(1, '#1d4ed8');
               return gradient;
             },
-            // Rejected - Red gradient
+            // Screen Reject - Red gradient
             () => {
               const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
               gradient.addColorStop(0, '#fca5a5');
@@ -203,7 +214,31 @@ const HRDashboard = () => {
               gradient.addColorStop(1, '#ef4444');
               return gradient;
             },
-            // Applied - Yellow gradient
+            // Interview Select - Green gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#86efac');
+              gradient.addColorStop(0.5, '#4ade80');
+              gradient.addColorStop(1, '#22c55e');
+              return gradient;
+            },
+            // Interview Reject - Orange gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#fdba74');
+              gradient.addColorStop(0.5, '#fb923c');
+              gradient.addColorStop(1, '#f97316');
+              return gradient;
+            },
+            // No Show for Joining - Purple gradient
+            () => {
+              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
+              gradient.addColorStop(0, '#c4b5fd');
+              gradient.addColorStop(0.5, '#a78bfa');
+              gradient.addColorStop(1, '#8b5cf6');
+              return gradient;
+            },
+            // Placed - Yellow gradient
             () => {
               const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
               gradient.addColorStop(0, '#fde047');
@@ -366,66 +401,7 @@ const HRDashboard = () => {
         </motion.div>
       </div>
 
-      {/* Recent Jobs below the charts */}
-      <div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.7 }}
-        >
-          <div className="card p-6 mt-2">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-slate-800">Recent Jobs</h3>
-            </div>
-            
-            <div className="space-y-4">
-              {recentJobs.length === 0 ? (
-                <div className="text-center py-8">
-                  <Briefcase className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-                  <p className="text-slate-500">No recent jobs</p>
-                </div>
-              ) : (
-                recentJobs.map((job, index) => (
-                  <motion.div
-                    key={job.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: 0.8 + index * 0.05 }}
-                    className="p-4 bg-pastel-blue/30 rounded-xl hover:bg-pastel-blue/50 transition-colors duration-200"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-slate-800 text-sm">{job.title}</h4>
-                      <span className={`badge ${
-                        job.status === 'open' ? 'badge-success' :
-                        job.status === 'allocated' ? 'badge-info' :
-                        job.status === 'closed' ? 'badge-secondary' :
-                        'badge-warning'
-                      }`}>
-                        {job.status}
-                      </span>
-                    </div>
-                    
-                    <div className="space-y-1 text-xs text-slate-600">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-3 w-3" />
-                        <span>{job.location || 'Remote'}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-400">₹</span>
-                        <span>{job.ctc || 'Not specified'}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3 w-3" />
-                        <span>{job.start_date ? new Date(job.start_date).toLocaleDateString() : 'N/A'}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))
-              )}
-            </div>
-          </div>
-        </motion.div>
-      </div>
+
     </div>
   )
 }

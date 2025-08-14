@@ -101,7 +101,7 @@ const AdminAddJob = () => {
         toast.error('Please upload a valid CSV or Excel file (.csv, .xlsx, .xls)')
       }
     }
-  }, [])
+  }, [salaryBands]) // Add salaryBands as dependency
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -117,13 +117,23 @@ const AdminAddJob = () => {
   const calculateActualSalary = (band, rate) => {
     if (!band || !rate) return ''
     
+    console.log('Calculating actual salary for:', { band, rate, salaryBands })
+    
     const selectedBand = salaryBands.find(b => b.band === band)
-    if (!selectedBand) return ''
+    if (!selectedBand) {
+      console.log('Band not found:', band)
+      return ''
+    }
     
     const rateValue = selectedBand.rates[rate]
-    if (!rateValue) return ''
+    if (!rateValue) {
+      console.log('Rate not found:', rate, 'Available rates:', selectedBand.rates)
+      return ''
+    }
     
-    return (rateValue * 1920).toString()
+    const result = (rateValue * 1920).toString()
+    console.log('Calculated actual salary:', result)
+    return result
   }
 
   // Calculate expected package based on actual salary and profit percentage
@@ -136,6 +146,7 @@ const AdminAddJob = () => {
     if (isNaN(actual) || isNaN(profit)) return ''
     
     const expected = actual - (actual * (profit / 100))
+    console.log('Calculated expected package:', expected.toString())
     return expected.toString()
   }
 
@@ -241,6 +252,8 @@ const AdminAddJob = () => {
         const endDate = row.end_date || row['End Date'] || row['end_date'] || ''
         const priority = row.priority || row['Priority'] || ''
 
+        console.log('Processing row:', { band, rate, profit, salaryBands: salaryBands.length })
+
         let actual = ''
         if (band && rate) {
           actual = calculateActualSalary(band, rate)
@@ -249,6 +262,8 @@ const AdminAddJob = () => {
         if (actual && profit) {
           expected = calculateExpectedPackage(actual, profit)
         }
+
+        console.log('Calculated values:', { actual, expected })
 
         return {
           ...row,
@@ -343,6 +358,8 @@ const AdminAddJob = () => {
           const endDate = row.end_date || row['End Date'] || row['end_date'] || ''
           const priority = row.priority || row['Priority'] || ''
 
+          console.log('Processing Excel row:', { band, rate, profit, salaryBands: salaryBands.length })
+
           let actual = ''
           if (band && rate) {
             actual = calculateActualSalary(band, rate)
@@ -351,6 +368,8 @@ const AdminAddJob = () => {
           if (actual && profit) {
             expected = calculateExpectedPackage(actual, profit)
           }
+
+          console.log('Calculated Excel values:', { actual, expected })
 
           return {
             ...row,
@@ -916,22 +935,10 @@ const AdminAddJob = () => {
                                   {row.assigned_hr || ''}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-900">
-                                  <input
-                                    type="text"
-                                    value={row.actual_salary || ''}
-                                    readOnly
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md bg-gray-50"
-                                    placeholder="Calculated automatically"
-                                  />
+                                  {row.actual_salary || ''}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-900">
-                                  <input
-                                    type="text"
-                                    value={row.expected_package || ''}
-                                    readOnly
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md bg-gray-50"
-                                    placeholder="Calculated automatically"
-                                  />
+                                  {row.expected_package || ''}
                                 </td>
                               </tr>
                             ))}

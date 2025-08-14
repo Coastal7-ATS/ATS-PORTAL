@@ -6,11 +6,8 @@ services:
       dockerfile: Dockerfile
     container_name: recruitment-backend
     restart: unless-stopped
-    environment:
-      - MONGODB_URL=mongodb+srv://Bharathi123:Bharathi123@cluster0.q0k9nft.mongodb.net/ats_recruitment?retryWrites=true&w=majority&appName=Cluster0
-      - JWT_SECRET_KEY=your-secret-key-here-change-in-production
-      - JWT_ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    env_file:
+      - backend/.env
     ports:
       - "8000:8000"
     networks:
@@ -26,8 +23,12 @@ services:
       dockerfile: Dockerfile
     container_name: recruitment-frontend
     restart: unless-stopped
+    env_file:
+      - frontend/.env
     environment:
-      - VITE_BACKEND_URL=http://localhost:8000
+      - VITE_BACKEND_URL=${VITE_BACKEND_URL}
+      - FRONTEND_PORT=${FRONTEND_PORT}
+      - BACKEND_URL=${BACKEND_URL}
     ports:
       - "80:80"
     depends_on:

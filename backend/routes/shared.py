@@ -6,6 +6,7 @@ from models import CandidateCreate, CandidateUpdate
 from routes.auth import get_current_user, get_current_admin_user, get_current_hr_user
 from database import get_database
 from fastapi.responses import JSONResponse
+from config import settings
 
 router = APIRouter(tags=["Shared"])
 
@@ -27,21 +28,33 @@ async def update_expired_job_statuses():
         open_jobs_past_end = await db.recruitment_portal.jobs.find({
             "status": "open", 
             "end_date": {"$lte": current_date_str}
-        }).to_list(length=200)
+        }).to_list(length=settings.MAX_QUERY_LIMIT_MEDIUM)
         
         print(f"Found {len(open_jobs_past_end)} open jobs past end date")
         
         updated_count = 0
         for job in open_jobs_past_end:
             try:
-                # Check if any candidate for this job is selected
+                # Check if any candidate for this job is interview_selected or placed
                 selected = await db.recruitment_portal.candidates.find_one({
                     "job_id": job["job_id"], 
-                    "status": "selected"
+                    "status": {"$in": ["interview_selected", "placed"]}
                 })
                 
                 if not selected:
+                    # Check if job already exists in job_history to prevent duplicates
+                    existing_in_history = await db.recruitment_portal.job_history.find_one({
+                        "original_job_id": job["_id"]
+                    })
+                    
+                    if existing_in_history:
+                        print(f"Job {job.get('job_id', 'unknown')} already exists in job_history, skipping")
+                        continue
+                    
                     # No selected candidates found, move to job_history and delete from original
+                    # Update job status to demand_closed before moving to history
+                    job["status"] = "demand_closed"
+                    
                     # Add additional fields for history tracking
                     job_history_doc = {
                         **job,
@@ -77,9 +90,6 @@ async def update_expired_job_statuses():
 @router.get("/jobs/{job_id}")
 async def get_job_details(job_id: str, current_user: dict = Depends(get_current_user)):
     db = await get_database()
-    
-    # Update expired job statuses first
-    await update_expired_job_statuses()
     
     # Try to find job by job_id field first, then by _id
     job = await db.recruitment_portal.jobs.find_one({"job_id": job_id})
@@ -244,9 +254,6 @@ async def update_candidate_status(
 ):
     db = await get_database()
     
-    # Update expired job statuses first
-    await update_expired_job_statuses()
-    
     candidate = await db.recruitment_portal.candidates.find_one({"_id": ObjectId(candidate_id)})
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
@@ -306,7 +313,7 @@ async def get_application_history(candidate_id: str, current_user: dict = Depend
     db = await get_database()
     history = await db.recruitment_portal.application_history.find(
         {"candidate_id": candidate_id}
-    ).sort("timestamp", -1).to_list(length=100)
+    ).sort("timestamp", -1).to_list(length=settings.MAX_QUERY_LIMIT)
     
     for entry in history:
         entry["id"] = str(entry["_id"])

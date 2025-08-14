@@ -8,7 +8,10 @@ import {
   MapPin,
   User,
   FileText,
-  Clock
+  Clock,
+  Trash2,
+  CheckSquare,
+  Square
 } from 'lucide-react'
 import { toast } from 'react-toastify'
 import api from '../../services/api'
@@ -35,10 +38,21 @@ const AdminHistory = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalJobs, setTotalJobs] = useState(0)
   const [limit] = useState(25)
+  
+  // Selection state
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [selectedRows, setSelectedRows] = useState([])
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchJobHistory()
   }, [currentPage, searchTerm])
+
+  // Reset selection when data changes
+  useEffect(() => {
+    setSelectedRows([])
+    setIsSelectionMode(false)
+  }, [jobs])
 
   const fetchJobHistory = async () => {
     try {
@@ -81,6 +95,62 @@ const AdminHistory = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page)
+  }
+
+  // Selection handlers
+  const handleToggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode)
+    if (isSelectionMode) {
+      setSelectedRows([])
+    }
+  }
+
+  const handleRowSelect = (row) => {
+    setSelectedRows(prev => {
+      if (prev.includes(row.id)) {
+        return prev.filter(id => id !== row.id)
+      } else {
+        return [...prev, row.id]
+      }
+    })
+  }
+
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedRows(jobs.map(job => job.id))
+    } else {
+      setSelectedRows([])
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedRows.length === 0) {
+      toast.warning('Please select at least one record to delete')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedRows.length} selected record(s)? This action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setIsDeleting(true)
+      const response = await api.delete('/admin/job-history/bulk-delete', {
+        data: selectedRows
+      })
+
+      toast.success(response.data.message)
+      setSelectedRows([])
+      setIsSelectionMode(false)
+      fetchJobHistory() // Refresh the data
+    } catch (error) {
+      console.error('Error deleting records:', error)
+      toast.error(error.response?.data?.detail || 'Failed to delete selected records')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const formatDate = (dateString) => {
@@ -229,6 +299,10 @@ const AdminHistory = () => {
       : "px-4 py-3 text-sm text-gray-900"
   }))
 
+  // Calculate selection states
+  const selectAllChecked = jobs.length > 0 && selectedRows.length === jobs.length
+  const selectAllIndeterminate = selectedRows.length > 0 && selectedRows.length < jobs.length
+
   if (loading && jobs.length === 0) {
     return <LoadingSpinner />
   }
@@ -243,20 +317,59 @@ const AdminHistory = () => {
       {/* Header */}
       <motion.div
         variants={fadeInUp}
-        className="flex items-center gap-4 mb-6"
+        className="flex items-center justify-between mb-6"
       >
-        <button
-          onClick={() => navigate('/admin/dashboard')}
-          className="p-2 rounded-lg hover:bg-slate-100 transition-colors duration-200"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-5 w-5 text-slate-600" />
-        </button>
-        <div>
-          <h1 className="gradient-text text-3xl font-bold">Job History</h1>
-          <p className="text-slate-500 mt-1">
-            View jobs that have been moved to history due to expiration
-          </p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/admin/dashboard')}
+            className="p-2 rounded-lg hover:bg-slate-100 transition-colors duration-200"
+            aria-label="Back"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-600" />
+          </button>
+          <div>
+            <h1 className="gradient-text text-3xl font-bold">Job History</h1>
+            <p className="text-slate-500 mt-1">
+              View jobs that have been moved to history due to expiration
+            </p>
+          </div>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3">
+          {isSelectionMode && (
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span>{selectedRows.length} selected</span>
+            </div>
+          )}
+          
+          {isSelectionMode ? (
+            <>
+              <button
+                onClick={handleBulkDelete}
+                disabled={selectedRows.length === 0 || isDeleting}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed transition-colors duration-200"
+              >
+                <Trash2 className="h-4 w-4" />
+                {isDeleting ? 'Deleting...' : 'Delete Selected'}
+              </button>
+              <button
+                onClick={handleToggleSelectionMode}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
+              >
+                <Square className="h-4 w-4" />
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleToggleSelectionMode}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200"
+            >
+              <CheckSquare className="h-4 w-4" />
+              Select
+            </button>
+          )}
         </div>
       </motion.div>
 
@@ -299,6 +412,12 @@ const AdminHistory = () => {
               headers={headers}
               loading={loading}
               emptyMessage="No jobs found in history"
+              showCheckboxes={isSelectionMode}
+              selectedRows={selectedRows}
+              onRowSelect={handleRowSelect}
+              onSelectAll={handleSelectAll}
+              selectAllChecked={selectAllChecked}
+              selectAllIndeterminate={selectAllIndeterminate}
             />
             
             {/* Pagination */}

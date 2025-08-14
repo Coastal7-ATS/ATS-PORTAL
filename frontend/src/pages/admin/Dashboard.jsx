@@ -220,14 +220,13 @@ const AdminDashboard = () => {
 
   // Chart data for job status distribution
   const jobStatusData = {
-    labels: ['Open', 'Closed', 'Submitted', 'Demand Closed'],
+    labels: ['Open', 'Closed', 'Submitted'],
     datasets: [
       {
         data: [
           Number(dashboardData?.open_jobs) || 0,
           Number(dashboardData?.closed_jobs) || 0,
           Number(dashboardData?.submitted_jobs) || 0,
-          Number(dashboardData?.demand_closed_jobs) || 0,
         ],
         backgroundColor: function(context) {
           const chart = context.chart;
@@ -260,14 +259,6 @@ const AdminDashboard = () => {
               gradient.addColorStop(0, '#a78bfa'); // lighter lavender
               gradient.addColorStop(0.5, '#8b5cf6'); // medium purple
               gradient.addColorStop(1, '#7c3aed'); // deep purple
-              return gradient;
-            },
-            // Demand Closed - Red gradient (more vibrant)
-            () => {
-              const gradient = ctx.createLinearGradient(0, 0, 0, chartArea.height);
-              gradient.addColorStop(0, '#ef4555');
-              gradient.addColorStop(0.5, '#dc2626');
-              gradient.addColorStop(1, '#b91c1c');
               return gradient;
             }
           ];
@@ -550,16 +541,16 @@ const AdminDashboard = () => {
       color: 'from-purple-500 to-indigo-500'
     },
     {
-      name: 'Demand Closed',
-      value: Number(dashboardData?.demand_closed_jobs) || 0,
-      icon: XCircle,
-      color: 'from-red-500 to-pink-500'
+      name: 'Applied',
+      value: Number(dashboardData?.applied_candidates) || 0,
+      icon: Users,
+      color: 'from-blue-500 to-indigo-500'
     },
     {
-      name: 'Total Candidates',
-      value: Number(dashboardData?.total_candidates) || 0,
-      icon: Users,
-      color: 'from-success-500 to-emerald-500'
+      name: 'Screen Reject',
+      value: Number(dashboardData?.screen_reject_candidates) || 0,
+      icon: XCircleIcon,
+      color: 'from-red-500 to-rose-600'
     },
     {
       name: 'Interview Selected',
@@ -571,7 +562,13 @@ const AdminDashboard = () => {
       name: 'Interview Rejected',
       value: Number(dashboardData?.interview_reject_candidates) || 0,
       icon: XCircleIcon,
-      color: 'from-red-500 to-rose-600'
+      color: 'from-orange-500 to-red-500'
+    },
+    {
+      name: 'No Show for Joining',
+      value: Number(dashboardData?.no_show_for_joining_candidates) || 0,
+      icon: XCircleIcon,
+      color: 'from-purple-500 to-pink-500'
     },
     {
       name: 'Placed',

@@ -8,7 +8,7 @@ import re
 import io
 from fastapi.responses import StreamingResponse
 from models import UserCreate
-from routes.auth import get_current_admin_user
+from routes.auth import get_current_admin_user, get_password_hash, verify_password
 from database import get_database
 from routes.shared import update_expired_job_statuses
 
@@ -441,9 +441,6 @@ async def allocate_job(
 ):
     db = await get_database()
     
-    # Update expired job statuses first
-    await update_expired_job_statuses()
-    
     # Verify HR user exists
     hr_user = await db.recruitment_portal.users.find_one({"_id": ObjectId(hr_id), "role": "hr"})
     if not hr_user:
@@ -568,17 +565,14 @@ async def get_hr_users_for_filter(current_user: dict = Depends(get_current_admin
     return hr_list
 
 @router.get("/dashboard")
-async def get_admin_dashboard(
+async def get_dashboard(
     report_type: Optional[str] = None,  # "weekly", "monthly", "custom"
-    hr_id: Optional[str] = None,
+    hr_id: Optional[str] = None,  # If None, generate report for all HR
     custom_start_date: Optional[str] = None,
     custom_end_date: Optional[str] = None,
     current_user: dict = Depends(get_current_admin_user)
 ):
     db = await get_database()
-    
-    # Update expired job statuses first
-    await update_expired_job_statuses()
     
     # Build date filter based on report type
     date_filter = {}
@@ -634,10 +628,11 @@ async def get_admin_dashboard(
     
     # Get candidate counts with filters
     total_candidates = await db.recruitment_portal.candidates.count_documents(candidate_filter)
-    selected_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "selected"})
-    rejected_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "rejected"})
+    applied_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "applied"})
+    screen_reject_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "screen_reject"})
     interview_selected_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "interview_selected"})
     interview_reject_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "interview_reject"})
+    no_show_for_joining_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "no_show_for_joining"})
     placed_candidates = await db.recruitment_portal.candidates.count_documents({**candidate_filter, "status": "placed"})
     
     # Get HR user count (no filter for this)
@@ -663,10 +658,11 @@ async def get_admin_dashboard(
                 "submitted_jobs": len([j for j in hr_jobs if j["status"] == "submitted"]),
                 "demand_closed_jobs": len([j for j in hr_jobs if j["status"] == "demand closed"]),
                 "total_candidates": len(hr_candidates),
-                "selected_candidates": len([c for c in hr_candidates if c["status"] == "selected"]),
-                "rejected_candidates": len([c for c in hr_candidates if c["status"] == "rejected"]),
+                "applied_candidates": len([c for c in hr_candidates if c["status"] == "applied"]),
+                "screen_reject_candidates": len([c for c in hr_candidates if c["status"] == "screen_reject"]),
                 "interview_selected_candidates": len([c for c in hr_candidates if c["status"] == "interview_selected"]),
                 "interview_reject_candidates": len([c for c in hr_candidates if c["status"] == "interview_reject"]),
+                "no_show_for_joining_candidates": len([c for c in hr_candidates if c["status"] == "no_show_for_joining"]),
                 "placed_candidates": len([c for c in hr_candidates if c["status"] == "placed"])
             }
     
@@ -677,10 +673,11 @@ async def get_admin_dashboard(
         "submitted_jobs": submitted_jobs,
         "demand_closed_jobs": demand_closed_jobs,
         "total_candidates": total_candidates,
-        "selected_candidates": selected_candidates,
-        "rejected_candidates": rejected_candidates,
+        "applied_candidates": applied_candidates,
+        "screen_reject_candidates": screen_reject_candidates,
         "interview_selected_candidates": interview_selected_candidates,
         "interview_reject_candidates": interview_reject_candidates,
+        "no_show_for_joining_candidates": no_show_for_joining_candidates,
         "placed_candidates": placed_candidates,
         "hr_users": hr_users,
         "hr_performance": hr_performance,
@@ -695,9 +692,6 @@ async def get_admin_dashboard(
 @router.get("/candidates")
 async def get_all_candidates(current_user: dict = Depends(get_current_admin_user)):
     db = await get_database()
-    
-    # Update expired job statuses first
-    await update_expired_job_statuses()
     
     candidates = await db.recruitment_portal.candidates.find({}).sort("created_at", -1).to_list(length=100)
     
@@ -1094,4 +1088,69 @@ async def get_job_history(
             "has_next": page < total_pages,
             "has_prev": page > 1
         }
-    } 
+    }
+
+@router.delete("/job-history/bulk-delete")
+async def bulk_delete_job_history(
+    job_ids: List[str],
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """
+    Bulk delete job history records by their IDs.
+    """
+    if not job_ids:
+        raise HTTPException(status_code=400, detail="No job IDs provided")
+    
+    db = await get_database()
+    
+    # Convert string IDs to ObjectId
+    try:
+        object_ids = [ObjectId(job_id) for job_id in job_ids]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid job ID format: {str(e)}")
+    
+    # Delete the records
+    try:
+        result = await db.recruitment_portal.job_history.delete_many({"_id": {"$in": object_ids}})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="No records found to delete")
+        
+        return {
+            "message": f"Successfully deleted {result.deleted_count} job history records",
+            "deleted_count": result.deleted_count
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting records: {str(e)}")
+
+@router.put("/change-password")
+async def change_password(
+    password_data: dict,
+    current_user: dict = Depends(get_current_admin_user)
+):
+    """
+    Change password for admin user.
+    """
+    current_password = password_data.get("current_password")
+    new_password = password_data.get("new_password")
+    
+    db = await get_database()
+    
+    # Verify current password
+    if not verify_password(current_password, current_user["password"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Hash new password
+    hashed_new_password = get_password_hash(new_password)
+    
+    # Update password in database
+    result = await db.recruitment_portal.users.update_one(
+        {"_id": current_user["_id"]},
+        {"$set": {"password": hashed_new_password}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=500, detail="Failed to update password")
+    
+    return {"message": "Password updated successfully"}

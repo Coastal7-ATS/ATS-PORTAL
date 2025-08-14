@@ -12,7 +12,7 @@ import {
   LogOut,
   Menu,
   X,
-  
+  Lock,
   Shield
 } from 'lucide-react'
 
@@ -90,12 +90,14 @@ const Layout = () => {
     { name: 'History', path: '/admin/history', icon: Upload },
     { name: 'HR Users', path: '/admin/users', icon: Users },
     { name: 'Candidates', path: '/admin/candidates', icon: UserCheck },
+    { name: 'Change Password', path: '/admin/change-password', icon: Lock },
   ]
 
   const hrNavItems = [
     { name: 'Dashboard', path: '/hr/dashboard', icon: Home },
     { name: 'My Jobs', path: '/hr/jobs', icon: Briefcase },
     { name: 'Candidates', path: '/hr/candidates', icon: UserCheck },
+    { name: 'Change Password', path: '/hr/change-password', icon: Lock },
   ]
 
   const navItems = isAdmin ? adminNavItems : hrNavItems

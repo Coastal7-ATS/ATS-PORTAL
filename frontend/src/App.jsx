@@ -9,9 +9,11 @@ import AdminAddJob from './pages/admin/AddJob'
 import AdminUsers from './pages/admin/Users'
 import AdminCandidates from './pages/admin/Candidates'
 import AdminHistory from './pages/admin/History'
+import AdminChangePassword from './pages/admin/ChangePassword'
 import HRDashboard from './pages/hr/Dashboard'
 import HRJobs from './pages/hr/Jobs'
 import HRCandidates from './pages/hr/Candidates'
+import ChangePassword from './pages/hr/ChangePassword'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -37,6 +39,7 @@ function App() {
               <Route path="users" element={<AdminUsers />} />
               <Route path="candidates" element={<AdminCandidates />} />
               <Route path="history" element={<AdminHistory />} />
+              <Route path="change-password" element={<AdminChangePassword />} />
             </Route>
             
             {/* HR Routes */}
@@ -49,6 +52,7 @@ function App() {
               <Route path="dashboard" element={<HRDashboard />} />
               <Route path="jobs" element={<HRJobs />} />
               <Route path="candidates" element={<HRCandidates />} />
+              <Route path="change-password" element={<ChangePassword />} />
             </Route>
             
             {/* Default redirect */}

@@ -22,7 +22,7 @@ export const RealTimeProvider = ({ children }) => {
   const [isActive, setIsActive] = useState(true)
 
   // Polling interval in milliseconds - much longer to reduce requests
-  const POLLING_INTERVAL = 300000 // 5 minutes
+  const POLLING_INTERVAL = parseInt(import.meta.env.VITE_REAL_TIME_POLLING_INTERVAL) || 300000 // 5 minutes
 
   const fetchDashboardData = useCallback(async () => {
     if (!user || !isActive) return
