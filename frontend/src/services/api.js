@@ -88,12 +88,12 @@ api.interceptors.response.use(
 )
 
 // Enhanced retry logic for failed requests
-const retryRequest = async (config, retries = parseInt(import.meta.env.VITE_API_RETRY_ATTEMPTS) || 2) => {
+const retryRequest = async (config, retries = 2) => {
   try {
     return await api(config)
   } catch (error) {
     if (retries > 0 && (error.response?.status >= 500 || !error.response)) {
-      const delay = parseInt(import.meta.env.VITE_API_RETRY_DELAY) || 1000
+      const delay = 1000
       await new Promise(resolve => setTimeout(resolve, delay))
       return retryRequest(config, retries - 1)
     }
