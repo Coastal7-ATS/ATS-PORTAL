@@ -6,7 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 15000,
+  timeout: 15000,
 })
 
 // Add token to requests if available
