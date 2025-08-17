@@ -18,7 +18,7 @@ class Settings:
     BACKEND_HOST: str = os.getenv("BACKEND_HOST", "0.0.0.0")
     
     # CORS Configuration
-    CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "http://13.232.125.6:80,http://13.232.125.6,http://localhost:3000").split(",")
+    CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "http://15.206.68.31:80,http://15.206.68.31,http://localhost:3000").split(",")
     
     # API Configuration
     API_TIMEOUT: int = int(os.getenv("API_TIMEOUT", "15000"))
